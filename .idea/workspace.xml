@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1a8874e5-7f8e-43fb-991c-f849a1116e8f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/kotlinc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/remote-targets.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cran/corcranqrel" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cran/cran.all.1400" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cran/cran.qry" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cran/cranqrel" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cran/cranqrel.readme" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/results/BM25Similarity_results.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/results/ClassicSimilarity_results.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/results/results.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/QueryIndex.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/.github/workflows/push.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/.gitmodules" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/CHANGELOG" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/Makefile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/README" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/bpref_bug" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/build.bat" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/common.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/convert_zscores.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/form_prefs_counts.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/form_res_rels.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/form_res_rels_jg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/formats.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/functions.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/gain_init.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/get_prefs.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/get_qrels.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/get_qrels_jg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/get_qrels_prefs.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/get_trec_results.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/get_zscores.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_11pt_avg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_G.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_P.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_P_avgjg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_Rndcg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_Rprec.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_Rprec_mult.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_Rprec_mult_avgjg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_binG.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_bpref.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_gm_bpref.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_gm_map.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_infap.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_iprec_at_recall.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_map.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_map_avgjg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_map_cut.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_ndcg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_ndcg_cut.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_ndcg_p.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_ndcg_rel.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_num_nonrel_judged_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_num_q.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_num_rel.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_num_rel_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_num_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_avgjg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_avgjg_Rnonrel.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_avgjg_Rnonrel_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_avgjg_imp.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_avgjg_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_num_prefs_ful.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_num_prefs_ful_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_num_prefs_poss.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_pair.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_pair_imp.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_pair_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_simp.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_simp_imp.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_prefs_simp_ret.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_rbp.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_rbp_resid.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_recall.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_recip_rank.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_rel_P.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_relstring.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_runid.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_set_F.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_set_P.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_set_map.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_set_recall.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_set_rel_P.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_success.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_unjudged.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_utility.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/m_yaap.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/meas_acc.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/meas_avg.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/meas_init.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/meas_print_final.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/meas_print_single.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/measures.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/quicktest.bat" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/sysfunc.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/decorate-run.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/make_zscore_file.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.a" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.aq" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.aqZ" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.aqc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.aqcM" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.aql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.meas_params" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.prefs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.qrels_jg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/out.test.qrels_prefs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/prefs.rank20" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/prefs.results.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/prefs.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/qrels-302.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/qrels.123" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/qrels.comment.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/qrels.rel_level" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/qrels.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/results-302.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/results.comment.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/results.test" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/results.trunc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/test/zscores_file" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/trec_eval" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/trec_eval.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/trec_eval.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/trec_eval_compressed" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/trec_format.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trec_eval/utility_pool.c" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0
+}]]></component>
+  <component name="ProjectId" id="2nkiq9aYRjF8Htffxgqgt7CSWWI" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Kotlin.MainKt (1).executor": "Run",
+    "Kotlin.MainKt.executor": "Run",
+    "Kotlin.QueryIndexKt (1).executor": "Run",
+    "Kotlin.QueryIndexKt.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "//wsl.localhost/Ubuntu/home/jamjar/tcd/ir-ws/Lucene-A2/src/main/kotlin",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="\\wsl.localhost\Ubuntu\home\jamjar\tcd\ir-ws\Lucene-A2\src\main\kotlin" />
+      <recent name="\\wsl.localhost\Ubuntu\home\jamjar\tcd\ir-ws\Lucene-A2" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="\\wsl.localhost\Ubuntu\home\jamjar\tcd\ir-ws\Lucene-A2\src\main\kotlin" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Kotlin.MainKt (1)">
+    <configuration name="MainKt (1)" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="MainKt" />
+      <module name="Lucene-A2" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="MainKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="org.example.MainKt" />
+      <module name="Lucene-A2" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="QueryIndexKt (1)" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="QueryIndexKt" />
+      <module name="Lucene-A2" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="QueryIndexKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="ie.tcd.taylorj8.QueryIndexKt" />
+      <module name="Lucene-A2" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Kotlin.MainKt (1)" />
+        <item itemvalue="Kotlin.QueryIndexKt (1)" />
+        <item itemvalue="Kotlin.QueryIndexKt" />
+        <item itemvalue="Kotlin.MainKt" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1a8874e5-7f8e-43fb-991c-f849a1116e8f" name="Changes" comment="" />
+      <created>1729523663471</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1729523663471</updated>
+    </task>
+    <servers />
+  </component>
+</project>
