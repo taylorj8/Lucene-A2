@@ -12,7 +12,6 @@ import org.apache.lucene.document.StringField
 import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.similarities.BM25Similarity
-import org.apache.lucene.search.similarities.ClassicSimilarity
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
 
 import org.apache.lucene.search.similarities.Similarity
@@ -27,6 +26,7 @@ class QueryIndex {
     private val analyzer: Analyzer
     private val directory: Directory
     var similarity: Similarity
+    private val iwriter: IndexWriter
 
     init {
         // Need to use the same analyzer and index directory throughout, so
@@ -39,17 +39,34 @@ class QueryIndex {
             .addTokenFilter("porterstem")
             .build()
         this.similarity = BM25Similarity()
-    }
-
-    fun buildIndex(fileName: String) {
-        println("Indexing \"$fileName\"")
 
         // create and configure an index writer
         val config = IndexWriterConfig(analyzer).apply {
             setOpenMode(IndexWriterConfig.OpenMode.CREATE)
             setSimilarity(similarity)
         }
-        val iwriter = IndexWriter(directory, config)
+        this.iwriter = IndexWriter(directory, config)
+    }
+
+    fun separateDocs(directory: String): List<String> {
+        // loop through each file in the directory
+        val docs = ArrayList<String>()
+        File(directory).walk().forEach {
+            if (it.isFile) {
+                val content = it.readText()
+                val docSeparator = Pattern.compile("(?<=<DOC>\\s)[\\s\\S]*?(?=</DOC>)").matcher(content)
+                while (docSeparator.find()) {
+                    docs.add(docSeparator.group())
+                }
+            }
+        }
+        println(docs.size.toString() + " documents separated from \"$directory\".")
+        return docs
+    }
+
+
+    fun buildIndex(fileName: String) {
+        println("Indexing \"$fileName\"")
 
         // read in file and separate into documents
         val content = File(fileName).readText()
@@ -79,13 +96,11 @@ class QueryIndex {
                 add(StringField("id", idMatcher.group(), Field.Store.YES))
                 add(StringField("author", authorMatcher.group(), Field.Store.YES))
             }
-            
+
             iwriter.addDocument(doc)
         }
         println(sections.size.toString() + " documents indexed.")
-        iwriter.close()
     }
-
 
     fun importQueries(fileName: String): List<String> {
         val content = File(fileName).readText()
@@ -99,7 +114,6 @@ class QueryIndex {
         println(queries.size.toString() + " queries imported.")
         return queries
     }
-
 
     fun correctQrel(fileName: String) {
         // create file to store corrected qrel if it doesn't exist
@@ -138,7 +152,11 @@ class QueryIndex {
     fun search(searchTerm: String): Array<ScoreDoc> {
         val ireader = DirectoryReader.open(directory)
         val isearcher = IndexSearcher(ireader).also { it.similarity = similarity }
-        val parser = MultiFieldQueryParser(arrayOf("title", "content"), analyzer, mapOf("title" to 0.7f, "content" to 1f))
+        val parser = MultiFieldQueryParser(
+            arrayOf("title", "content"),
+            analyzer,
+            mapOf("title" to 0.7f, "content" to 1f)
+        )
 
         val query = parser.parse(searchTerm)
         val hits = isearcher.search(query, 50).scoreDocs
@@ -153,6 +171,7 @@ class QueryIndex {
     }
 
     fun shutdown() {
+        iwriter.close()
         directory.close()
     }
     
@@ -163,58 +182,52 @@ class QueryIndex {
                 exitProcess(1)
             }
 
-            val qi = QueryIndex()
-            qi.buildIndex(args[0])
 
-            if (args.size >= 2) {
-                val queries = qi.importQueries(args[1])
-                qi.runQueries(queries)
-                
-                // change similarity score and re-run queries
-                qi.similarity = ClassicSimilarity()
-                qi.buildIndex(args[0])
-                qi.runQueries(queries)
-                if (args.size == 3) {
-                    qi.correctQrel(args[2])
-                }
-                
-                qi.shutdown()
-                exitProcess(0)
-            }
-            
-            println("No arguments passed, running in search mode. Press enter with no search term to exit.")
-            while (true) {
-                print("🔍: ")
-                val searchTerm = readlnOrNull()
-                if (searchTerm.isNullOrEmpty()) {
-                    print("Shutting down\n")
-                    qi.shutdown()
-                    exitProcess(0)
-                }
-                
-                val hits = qi.search(searchTerm)
-                print("${hits.size} results found:\n")
-                for (hit in hits) {
-                    print(hit.doc.toString() + "\n")
-                }
-            }
+            val qi = QueryIndex()
+            val laDocs = qi.separateDocs("docs/latimes")
+            val ftDocs = qi.separateDocs("docs/ft")
+            val frDocs = qi.separateDocs("docs/fr94")
+            val fbDocs = qi.separateDocs("docs/fbis")
+
+
+
+            qi.shutdown()
+            exitProcess(0)
+
+//            qi.buildIndex(args[0])
+//
+//            if (args.size >= 2) {
+//                val queries = qi.importQueries(args[1])
+//                qi.runQueries(queries)
+//
+//                // change similarity score and re-run queries
+//                qi.similarity = ClassicSimilarity()
+//                qi.buildIndex(args[0])
+//                qi.runQueries(queries)
+//                if (args.size == 3) {
+//                    qi.correctQrel(args[2])
+//                }
+//
+//                qi.shutdown()
+//                exitProcess(0)
+//            }
+//
+//            println("No arguments passed, running in search mode. Press enter with no search term to exit.")
+//            while (true) {
+//                print("🔍: ")
+//                val searchTerm = readlnOrNull()
+//                if (searchTerm.isNullOrEmpty()) {
+//                    print("Shutting down\n")
+//                    qi.shutdown()
+//                    exitProcess(0)
+//                }
+//
+//                val hits = qi.search(searchTerm)
+//                print("${hits.size} results found:\n")
+//                for (hit in hits) {
+//                    print(hit.doc.toString() + "\n")
+//                }
+//            }
         }
     }
-}
-
-// function for debugging
-fun main(args: Array<String>) {
-    print("test")
-    val qi = QueryIndex()
-    qi.buildIndex("/home/jamjar/tcd/ir-ws/assignment1/cran/cran.all.1400")  
-    val queries = qi.importQueries("/home/jamjar/tcd/ir-ws/assignment1/cran/cran.qry")
-    qi.correctQrel("/home/jamjar/tcd/ir-ws/assignment1/cran/cranqrel")
-    qi.runQueries(queries)
-    
-    // change similarity score and re-run queries
-    qi.similarity = ClassicSimilarity()
-    qi.buildIndex("/home/jamjar/tcd/ir-ws/assignment1/cran/cran.all.1400")  
-    qi.runQueries(queries)
-
-    qi.shutdown()
 }
