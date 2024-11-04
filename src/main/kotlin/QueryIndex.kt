@@ -46,7 +46,7 @@ class QueryIndex {
         this.iwriter = IndexWriter(directory, config)
     }
 
-    fun separateDocs(directory: String): List<String> {
+    private fun separateDocs(directory: String): List<String> {
         // loop through each file in the directory
         val docs = ArrayList<String>()
         File(directory).walk().forEach {
@@ -91,6 +91,33 @@ class QueryIndex {
         println(docs.size.toString() + " LA Times documents indexed.")
     }
 
+    fun indexFt() {
+        val docs = separateDocs("docs/ft")
+        for (doc in docs) {
+//            val docId = findByTagAndProcess(doc, "DOCNO")
+//            val header = findByTagAndProcess(doc, "HEA")
+//            val text = findByTagAndProcess(doc, "TEXT")
+//            val section = findByTagAndProcess(doc, "SECTION")
+//            val byline = findByTagAndProcess(doc, "BYLINE")
+//
+//            val iDoc = Document().apply {
+//                header?.let { add(TextField("headline", it, Field.Store.YES)) }
+//                text?.let { add(TextField("text", it, Field.Store.YES)) }
+//                docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+//                section?.let { add(StringField("section", it, Field.Store.YES)) }
+////                byline?.let { add(StringField("byline", it, Field.Store.YES)) }
+//            }
+//            iwriter.addDocument(iDoc)
+        }
+    }
+
+    fun indexFr94() {
+        val docs = separateDocs("docs/fr94")
+    }
+
+    fun indexFBis() {
+        val docs = separateDocs("docs/fbis")
+    }
 
     // ASSIGNMENT 1 CODE
     fun buildIndex(fileName: String) {
@@ -149,7 +176,7 @@ class QueryIndex {
         // create file to store corrected qrel if it doesn't exist
         File("cran/corcranqrel").let { qrelFile ->
             if (qrelFile.createNewFile()) {
-                File(fileName).forEachLine() { line ->
+                File(fileName).forEachLine { line ->
                     val judgements = line.split(" +".toRegex()).filter { line != "" }
                     val ranking = if(judgements[2] == "-1") 5 else judgements[2]
                     qrelFile.appendText(judgements[0] + " 0 " + judgements[1] + " " + ranking + "\n")
@@ -185,9 +212,9 @@ class QueryIndex {
         val ireader = DirectoryReader.open(directory)
         val isearcher = IndexSearcher(ireader).also { it.similarity = similarity }
         val parser = MultiFieldQueryParser(
-            arrayOf("title", "content"),
+            arrayOf("headline", "section", "text"),
             analyzer,
-            mapOf("title" to 0.7f, "content" to 1f)
+            mapOf("headline" to 0.8f, "section" to 0.2f, "text" to 1f)
         )
 
         val query = parser.parse(searchTerm)
@@ -218,9 +245,9 @@ class QueryIndex {
             // use existing index unless -i flag is passed
             if (args.isNotEmpty() && args[0] == "-i") {
                 qi.indexLaTimes()
-                val ftDocs = qi.separateDocs("docs/ft")
-                val frDocs = qi.separateDocs("docs/fr94")
-                val fbDocs = qi.separateDocs("docs/fbis")
+                qi.indexFt()
+                qi.indexFr94()
+                qi.indexFBis()
             } else {
                 println("Using existing index.")
             }
