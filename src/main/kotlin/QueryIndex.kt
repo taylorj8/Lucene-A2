@@ -23,21 +23,19 @@ import kotlin.system.exitProcess
 
 
 class QueryIndex {
-    private val analyzer: Analyzer
-    private val directory: Directory
+    // Need to use the same analyzer and index directory throughout, so initialize them here
+    private val directory: Directory = FSDirectory.open(Paths.get("index"))
+    private val analyzer: Analyzer = CustomAnalyzer.builder()
+        .withTokenizer("standard")
+        .addTokenFilter("lowercase")
+        .addTokenFilter("stop")
+        .addTokenFilter("porterstem")
+        .build()
+
     var similarity: Similarity
     private val iwriter: IndexWriter
 
     init {
-        // Need to use the same analyzer and index directory throughout, so
-        // initialize them here
-        this.directory = FSDirectory.open(Paths.get("index"))
-        this.analyzer = CustomAnalyzer.builder()
-            .withTokenizer("standard")
-            .addTokenFilter("lowercase")
-            .addTokenFilter("stop")
-            .addTokenFilter("porterstem")
-            .build()
         this.similarity = BM25Similarity()
 
         // create and configure an index writer
@@ -64,7 +62,37 @@ class QueryIndex {
         return docs
     }
 
+    private fun findByTagAndProcess(doc: String, tag: String): String? {
+        val matcher = Pattern.compile("(?<=<${tag}>)(.*?)(?=</${tag}>)").matcher(doc)
+        if (matcher.find()) {
+            return matcher.group().replace("<P>", "").replace("</P>", "").replace("\n", " ")
+        }
+        return null
+    }
 
+    fun indexLaTimes() {
+        val docs = separateDocs("docs/latimes")
+        for (doc in docs) {
+            val docId = findByTagAndProcess(doc, "DOCID")
+            val headline = findByTagAndProcess(doc, "HEADLINE")
+            val text = findByTagAndProcess(doc, "TEXT")
+            val section = findByTagAndProcess(doc, "SECTION")
+            val byline = findByTagAndProcess(doc, "BYLINE")
+
+            val iDoc = Document().apply {
+                headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                text?.let { add(TextField("text", it, Field.Store.YES)) }
+                docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                section?.let { add(StringField("section", it, Field.Store.YES)) }
+                byline?.let { add(StringField("byline", it, Field.Store.YES)) }
+            }
+            iwriter.addDocument(iDoc)
+        }
+        println(docs.size.toString() + " LA Times documents indexed.")
+    }
+
+
+    // ASSIGNMENT 1 CODE
     fun buildIndex(fileName: String) {
         println("Indexing \"$fileName\"")
 
@@ -102,6 +130,7 @@ class QueryIndex {
         println(sections.size.toString() + " documents indexed.")
     }
 
+    // ASSIGNMENT 1 CODE
     fun importQueries(fileName: String): List<String> {
         val content = File(fileName).readText()
         val queryMatcher = Pattern.compile("(?<=\\.W)(.*?)(?=\\.I|$)", Pattern.DOTALL).matcher(content)
@@ -115,6 +144,7 @@ class QueryIndex {
         return queries
     }
 
+    // ASSIGNMENT 1 CODE
     fun correctQrel(fileName: String) {
         // create file to store corrected qrel if it doesn't exist
         File("cran/corcranqrel").let { qrelFile ->
@@ -129,6 +159,7 @@ class QueryIndex {
         }
     }
 
+    // ASSIGNMENT 1 CODE
     fun runQueries(queries: List<String>) {
         // create file to store results, or clear it if it exists
         val simName = similarity::class.simpleName
@@ -149,6 +180,7 @@ class QueryIndex {
         println("Results saved to file.")
     }
 
+    // ASSIGNMENT 1 CODE
     fun search(searchTerm: String): Array<ScoreDoc> {
         val ireader = DirectoryReader.open(directory)
         val isearcher = IndexSearcher(ireader).also { it.similarity = similarity }
@@ -177,23 +209,26 @@ class QueryIndex {
     
     companion object {
         @JvmStatic fun main(args: Array<String>) {
-            if (args.size !in 1..3) {
-                println("Expected Arguments.")
-                exitProcess(1)
-            }
-
+//            if (args.size !in 1..3) {
+//                println("Expected Arguments.")
+//                exitProcess(1)
+//            }
 
             val qi = QueryIndex()
-            val laDocs = qi.separateDocs("docs/latimes")
-            val ftDocs = qi.separateDocs("docs/ft")
-            val frDocs = qi.separateDocs("docs/fr94")
-            val fbDocs = qi.separateDocs("docs/fbis")
-
-
+            // use existing index unless -i flag is passed
+            if (args.isNotEmpty() && args[0] == "-i") {
+                qi.indexLaTimes()
+                val ftDocs = qi.separateDocs("docs/ft")
+                val frDocs = qi.separateDocs("docs/fr94")
+                val fbDocs = qi.separateDocs("docs/fbis")
+            } else {
+                println("Using existing index.")
+            }
 
             qi.shutdown()
             exitProcess(0)
 
+            // ASSIGNMENT 1 CODE
 //            qi.buildIndex(args[0])
 //
 //            if (args.size >= 2) {
