@@ -48,7 +48,6 @@ class QueryIndex {
 
     private fun separateDocs(directory: String): List<String> {
         val docs = mutableListOf<String>()
-        var i = 0 
         // Walk through the directory to process each file
         File(directory).walk().forEach { file ->
             if (file.isFile) {
@@ -68,7 +67,7 @@ class QueryIndex {
                         if (line.contains("</DOC>")) {
                             insideDoc = false
                             // Add the document content and reset
-                            i = i + 1
+                         
                             println(i)
                             docs.add(docBuilder.toString())
                         }
@@ -90,25 +89,30 @@ class QueryIndex {
     }
 
     fun indexLaTimes() {
-        val docs = separateDocs("docs/latimes")
-        for (doc in docs) {
-            val docId = findByTagAndProcess(doc, "DOCID")
-            val headline = findByTagAndProcess(doc, "HEADLINE")
-            val text = findByTagAndProcess(doc, "TEXT")
-            val section = findByTagAndProcess(doc, "SECTION")
-            val byline = findByTagAndProcess(doc, "BYLINE")
+       
+        val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
+            
+        subfolders?.forEach { folder ->
+            val docs = separateDocs(folder.absolutePath)
+            for (doc in docs) {
+                val docId = findByTagAndProcess(doc, "DOCID")
+                val headline = findByTagAndProcess(doc, "HEADLINE")
+                val text = findByTagAndProcess(doc, "TEXT")
+                val section = findByTagAndProcess(doc, "SECTION")
+                val byline = findByTagAndProcess(doc, "BYLINE")
 
-            val iDoc = Document().apply {
-                headline?.let { add(TextField("headline", it, Field.Store.YES)) }
-                text?.let { add(TextField("text", it, Field.Store.YES)) }
-                docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                section?.let { add(StringField("section", it, Field.Store.YES)) }
-                byline?.let { add(StringField("byline", it, Field.Store.YES)) }
+                val iDoc = Document().apply {
+                    headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                    text?.let { add(TextField("text", it, Field.Store.YES)) }
+                    docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                    section?.let { add(StringField("section", it, Field.Store.YES)) }
+                    byline?.let { add(StringField("byline", it, Field.Store.YES)) }
+                }
+                iwriter.addDocument(iDoc)
             }
-            iwriter.addDocument(iDoc)
-        }
-        println(docs.size.toString() + " LA Times documents indexed.")
-    }
+            println(docs.size.toString() + " LA Times documents indexed.")
+        }  
+    } 
 
     fun indexFt() {
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
