@@ -47,20 +47,39 @@ class QueryIndex {
     }
 
     private fun separateDocs(directory: String): List<String> {
-        // loop through each file in the directory
-        val docs = ArrayList<String>()
-        File(directory).walk().forEach {
-            if (it.isFile) {
-                val content = it.readText()
-                val docSeparator = Pattern.compile("(?<=<DOC>\\s)[\\s\\S]*?(?=</DOC>)").matcher(content)
-                while (docSeparator.find()) {
-                    docs.add(docSeparator.group())
+        val docs = mutableListOf<String>()
+        var i = 0 
+        // Walk through the directory to process each file
+        File(directory).walk().forEach { file ->
+            if (file.isFile) {
+                val docBuilder = StringBuilder()
+                var insideDoc = false
+                
+                // Read the file line-by-line
+                file.bufferedReader().useLines { lines ->
+                    lines.forEach { line ->
+                        if (line.contains("<DOC>")) {
+                            insideDoc = true
+                            docBuilder.clear()  // Start a new document
+                        }
+                        if (insideDoc) {
+                            docBuilder.append(line).append("\n")
+                        }
+                        if (line.contains("</DOC>")) {
+                            insideDoc = false
+                            // Add the document content and reset
+                            i = i + 1
+                            println(i)
+                            docs.add(docBuilder.toString())
+                        }
+                    }
                 }
             }
         }
-        println(docs.size.toString() + " documents separated from \"$directory\".")
+        println("${docs.size} documents separated from \"$directory\".")
         return docs
     }
+    
 
     private fun findByTagAndProcess(doc: String, tag: String): String? {
         val matcher = Pattern.compile("(?<=<${tag}>)(.*?)(?=</${tag}>)").matcher(doc)
@@ -92,25 +111,27 @@ class QueryIndex {
     }
 
     fun indexFt() {
-        val docs = separateDocs("docs/ft")
-        for (doc in docs) {
-//            val docId = findByTagAndProcess(doc, "DOCNO")
-//            val header = findByTagAndProcess(doc, "HEA")
-//            val text = findByTagAndProcess(doc, "TEXT")
-//            val section = findByTagAndProcess(doc, "SECTION")
-//            val byline = findByTagAndProcess(doc, "BYLINE")
-//
-//            val iDoc = Document().apply {
-//                header?.let { add(TextField("headline", it, Field.Store.YES)) }
-//                text?.let { add(TextField("text", it, Field.Store.YES)) }
-//                docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-//                section?.let { add(StringField("section", it, Field.Store.YES)) }
-////                byline?.let { add(StringField("byline", it, Field.Store.YES)) }
-//            }
-//            iwriter.addDocument(iDoc)
-        }
-    }
+        val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
+            
+        subfolders?.forEach { folder ->
+            val docs = separateDocs(folder.absolutePath)
+            for (doc in docs) {
+                val docId = findByTagAndProcess(doc, "DOCNO")
+                val header = findByTagAndProcess(doc, "HEADLINE")
+                val text = findByTagAndProcess(doc, "TEXT")
+                val date = findByTagAndProcess(doc, "DATE")
 
+                val iDoc = Document().apply {
+                    header?.let { add(TextField("headline", it, Field.Store.YES)) }
+                    text?.let { add(TextField("text", it, Field.Store.YES)) }
+                    docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                    date?.let { add(StringField("date", it, Field.Store.YES)) }
+       
+            }
+            iwriter.addDocument(iDoc)
+            }
+        }
+    } 
     fun indexFr94() {
         val docs = separateDocs("docs/fr94")
     }
@@ -119,43 +140,7 @@ class QueryIndex {
         val docs = separateDocs("docs/fbis")
     }
 
-    // ASSIGNMENT 1 CODE
-    fun buildIndex(fileName: String) {
-        println("Indexing \"$fileName\"")
-
-        // read in file and separate into documents
-        val content = File(fileName).readText()
-        val divisor = Pattern.compile("\\.I \\d+[\\s\\S]*?(?=\\.I |$)").matcher(content)
-        val sections = ArrayList<String>()
-        while (divisor.find()) {
-            sections.add(divisor.group())
-        }
-
-        // make regex patterns to match the sections of each doc
-        val idPattern = Pattern.compile("(?<=\\.I )\\d+")
-        val authorPattern = Pattern.compile("(?<=\\.A\n).*")
-        val titlePattern = Pattern.compile("(?<=\\.T\n)(.*?)(?=\n\\.)", Pattern.DOTALL)
-        val textPattern = Pattern.compile("(?<=\\.W\n)(.*?)(?=$)", Pattern.DOTALL)
-        
-        for (section in sections) {
-            // match each attribute with regex
-            val idMatcher = idPattern.matcher(section).apply { find() }
-            val authorMatcher = authorPattern.matcher(section).apply { find() }
-            val titleMatcher = titlePattern.matcher(section).apply { find() }
-            val textMatcher = textPattern.matcher(section).apply { find() }
-
-            // index the doc
-            val doc = Document().apply {
-                add(TextField("title", titleMatcher.group(), Field.Store.YES))
-                add(TextField("content", textMatcher.group(), Field.Store.YES))
-                add(StringField("id", idMatcher.group(), Field.Store.YES))
-                add(StringField("author", authorMatcher.group(), Field.Store.YES))
-            }
-
-            iwriter.addDocument(doc)
-        }
-        println(sections.size.toString() + " documents indexed.")
-    }
+    
 
     // ASSIGNMENT 1 CODE
     fun importQueries(fileName: String): List<String> {
@@ -246,8 +231,8 @@ class QueryIndex {
             if (args.isNotEmpty() && args[0] == "-i") {
                 qi.indexLaTimes()
                 qi.indexFt()
-                qi.indexFr94()
-                qi.indexFBis()
+                //qi.indexFr94()
+                //qi.indexFBis()
             } else {
                 println("Using existing index.")
             }
@@ -260,6 +245,7 @@ class QueryIndex {
 //
 //            if (args.size >= 2) {
 //                val queries = qi.importQueries(args[1])
+
 //                qi.runQueries(queries)
 //
 //                // change similarity score and re-run queries

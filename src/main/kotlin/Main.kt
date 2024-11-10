@@ -1,6 +1,6 @@
 import org.apache.lucene.search.similarities.ClassicSimilarity
 
-
+/* 
 fun main() {
     print("test")
     val qi = QueryIndex()
@@ -15,4 +15,4 @@ fun main() {
     qi.runQueries(queries)
 
     qi.shutdown()
-}
+}*/
