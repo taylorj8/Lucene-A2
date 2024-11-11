@@ -47,43 +47,31 @@ class QueryIndex {
     }
 
     private fun separateDocs(directory: String): List<String> {
-        val docs = mutableListOf<String>()
-        // Walk through the directory to process each file
-        File(directory).walk().forEach { file ->
-            if (file.isFile) {
-                val docBuilder = StringBuilder()
-                var insideDoc = false
+        // loop through each file in the directory
+        val docs = ArrayList<String>()
+        File(directory).walk().forEach {
+            if (it.isFile) {
                 
-                // Read the file line-by-line
-                file.bufferedReader().useLines { lines ->
-                    lines.forEach { line ->
-                        if (line.contains("<DOC>")) {
-                            insideDoc = true
-                            docBuilder.clear()  // Start a new document
-                        }
-                        if (insideDoc) {
-                            docBuilder.append(line).append("\n")
-                        }
-                        if (line.contains("</DOC>")) {
-                            insideDoc = false
-                            // Add the document content and reset
-                         
-                            println(i)
-                            docs.add(docBuilder.toString())
-                        }
-                    }
+                val content = it.readText()
+                val docSeparator = Pattern.compile("(?<=<DOC>\\s)[\\s\\S]*?(?=</DOC>)").matcher(content)
+                while (docSeparator.find()) {
+                    docs.add(docSeparator.group())
                 }
             }
         }
-        println("${docs.size} documents separated from \"$directory\".")
+        println(docs.size.toString() + " documents separated from \"$directory\".")
         return docs
     }
     
 
     private fun findByTagAndProcess(doc: String, tag: String): String? {
-        val matcher = Pattern.compile("(?<=<${tag}>)(.*?)(?=</${tag}>)").matcher(doc)
+        val matcher = Pattern.compile("(?<=<${tag}>)([\\s\\S]*?)(?=</${tag}>)").matcher(doc)
         if (matcher.find()) {
-            return matcher.group().replace("<P>", "").replace("</P>", "").replace("\n", " ")
+            return matcher.group().replace(Regex("<!--.*?-->"), " ") 
+            .replace("<P>", "")
+            .replace("</P>", "")
+            .replace(Regex("<.*?F.*?>"), " ") // Replaces anything matching <*F*> with a space
+            .replace("\n", " ")
         }
         return null
     }
@@ -91,57 +79,89 @@ class QueryIndex {
     fun indexLaTimes() {
        
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
-            
+        var totalDocs = 0   
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
+            totalDocs += docs.size
             for (doc in docs) {
+                
                 val docId = findByTagAndProcess(doc, "DOCID")
                 val headline = findByTagAndProcess(doc, "HEADLINE")
                 val text = findByTagAndProcess(doc, "TEXT")
-                val section = findByTagAndProcess(doc, "SECTION")
-                val byline = findByTagAndProcess(doc, "BYLINE")
+                //Optional
+                val date = findByTagAndProcess(doc, "DATE")
+                //val section = findByTagAndProcess(doc, "SECTION")
+                //val byline = findByTagAndProcess(doc, "BYLINE")
 
                 val iDoc = Document().apply {
                     headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                     text?.let { add(TextField("text", it, Field.Store.YES)) }
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                    section?.let { add(StringField("section", it, Field.Store.YES)) }
-                    byline?.let { add(StringField("byline", it, Field.Store.YES)) }
+                    date?.let { add(TextField("date", it, Field.Store.YES)) }
+                    //Optional
+                    //section?.let { add(StringField("section", it, Field.Store.YES)) }
+                    //byline?.let { add(StringField("byline", it, Field.Store.YES)) }
                 }
                 iwriter.addDocument(iDoc)
             }
-            println(docs.size.toString() + " LA Times documents indexed.")
+            
         }  
+        println(totalDocs.toString() + " LA Times documents indexed.")
     } 
 
     fun indexFt() {
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
-            
+        var totalDocs = 0     
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
+            totalDocs += docs.size
             for (doc in docs) {
                 val docId = findByTagAndProcess(doc, "DOCNO")
-                val header = findByTagAndProcess(doc, "HEADLINE")
+                val headline = findByTagAndProcess(doc, "HEADLINE")
                 val text = findByTagAndProcess(doc, "TEXT")
                 val date = findByTagAndProcess(doc, "DATE")
+
+
+                val iDoc = Document().apply {
+                    docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                    date?.let { add(StringField("date", it, Field.Store.YES)) }
+                    headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                    text?.let { add(TextField("text", it, Field.Store.YES)) }
+            }
+            iwriter.addDocument(iDoc)
+            }
+        }
+        println(totalDocs.toString() + " Financial Times documents indexed.")
+    } 
+
+
+    fun indexFr94() {
+
+    } 
+
+
+    fun indexFBis() {
+        val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
+        var totalDocs = 0     
+        subfolders?.forEach { folder ->
+            val docs = separateDocs(folder.absolutePath)
+            totalDocs += docs.size
+            for (doc in docs) {
+                val docId = findByTagAndProcess(doc, "DOCNO")
+                val header = findByTagAndProcess(doc, "TI")
+                val date = findByTagAndProcess(doc, "DATE1")
+                val text = findByTagAndProcess(doc, "TEXT")
 
                 val iDoc = Document().apply {
                     header?.let { add(TextField("headline", it, Field.Store.YES)) }
                     text?.let { add(TextField("text", it, Field.Store.YES)) }
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                     date?.let { add(StringField("date", it, Field.Store.YES)) }
-       
             }
             iwriter.addDocument(iDoc)
             }
         }
-    } 
-    fun indexFr94() {
-        val docs = separateDocs("docs/fr94")
-    }
-
-    fun indexFBis() {
-        val docs = separateDocs("docs/fbis")
+        println(totalDocs.toString() + " Foreign Broadcast Information Services documents indexed.")
     }
 
     
@@ -233,7 +253,7 @@ class QueryIndex {
             val qi = QueryIndex()
             // use existing index unless -i flag is passed
             if (args.isNotEmpty() && args[0] == "-i") {
-                qi.indexLaTimes()
+                //qi.indexLaTimes()
                 qi.indexFt()
                 //qi.indexFr94()
                 //qi.indexFBis()
