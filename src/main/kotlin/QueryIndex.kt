@@ -16,7 +16,7 @@ import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
 import org.apache.lucene.queryparser.classic.QueryParser
-
+import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.similarities.Similarity
 
 import java.io.File
@@ -41,21 +41,52 @@ class QueryIndex {
     }
 
     data class QueryWithId(val num: String, val query: BooleanQuery)
+    fun sanitizeQuery(input: String): String {
+        // Replace newlines and tabs with spaces
+        var sanitized = input.replace("\n", " ").replace("\t", " ")
+    
+        // Escape special characters
+        val specialChars = arrayOf("+", "-", "&&", "||", "!", "(", ")", "{", "}", "[", "]", "^", "\"", "~", "*", "?", "\\", "/")
+        for (char in specialChars) {
+            sanitized = sanitized.replace(char, "")
+        }
+    
+        return sanitized
+    }
 
-    fun importQueries(ind: Indexer): List<QueryWithId> {
+    fun findByTagAndProcessQuery(doc: String, tag1: String, tag2: String): String? {
+    
+        val pattern = if(tag1 == "narr"){
+            "(?<=<${tag1}>)([\\s\\S]*?)$"
+        } else {
+            "(?<=<${tag1}>)([\\s\\S]*?)(?=<${tag2}>)"
+        }
+        val matcher = Pattern.compile(pattern).matcher(doc)
+            
+        if (matcher.find()) {
+            return matcher.group().replace(Regex("^\\s*(Number\\:|Description\\:|Narrative\\:)\\s*"), "")   
+        }
+        return null
+    }
+
+
+    fun importQueries(): List<QueryWithId> {
         val queries = ArrayList<QueryWithId>()
         val file = File("queries/topics")
         if (file.isFile) {
+            
             val content = file.readText()
             val querySeparator = Pattern.compile("(?<=<top>\\s)[\\s\\S]*?(?=</top>)").matcher(content)
             while (querySeparator.find()) {
-                val rawQuery = querySeparator.group()
-    
-                val num = ind.findByTagAndProcess(rawQuery, "num")
-                val title = ind.findByTagAndProcess(rawQuery, "title")
-                val desc = ind.findByTagAndProcess(rawQuery, "desc")
-                val narr = ind.findByTagAndProcess(rawQuery, "narr")
                 
+                val rawQuery = querySeparator.group()
+                val cleanQuery = sanitizeQuery(rawQuery)
+                val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
+                val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
+                val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
+                val narr = findByTagAndProcessQuery(cleanQuery, "narr", " " )
+           
+               
                 // Specify the fields and weights for the MultiFieldQueryParser
                 val fields = arrayOf("headline", "date", "text")
                 val fieldWeightsTitle = mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
@@ -66,17 +97,19 @@ class QueryIndex {
     
                 title?.let {
                     val titleQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsTitle).parse(it)
-                    booleanQuery.add(titleQuery, BooleanClause.Occur.SHOULD)
+                    val boostedTitleQuery = BoostQuery(titleQuery, 2.0f)
+                    booleanQuery.add(boostedTitleQuery, BooleanClause.Occur.SHOULD)
                 }
                 desc?.let {
                     val descQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDesc).parse(it)
-                    booleanQuery.add(descQuery, BooleanClause.Occur.SHOULD)
-                }
+                    val boostedDescQuery = BoostQuery(descQuery, 1.5f)
+                    booleanQuery.add(boostedDescQuery, BooleanClause.Occur.SHOULD)
+                }                
                 narr?.let {
                     val narrQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsNarr).parse(it)
-                    booleanQuery.add(narrQuery, BooleanClause.Occur.SHOULD)
+                    val boostedNarrQuery = BoostQuery(narrQuery, 1.0f)
+                    booleanQuery.add(boostedNarrQuery, BooleanClause.Occur.SHOULD)
                 }
-                
                 num?.let {
                     queries.add(QueryWithId(it, booleanQuery.build()))
                 }            
@@ -84,12 +117,10 @@ class QueryIndex {
         }
         println("${queries.size} queries prepared.")
         return queries
-    }
-        
-                
-    fun search(query: BooleanQuery): Array<ScoreDoc> {
-        val ireader = DirectoryReader.open(directory)
-        val isearcher = IndexSearcher(ireader).also { it.similarity = similarity }
+    }    
+            
+
+    fun search(query: BooleanQuery,  isearcher : IndexSearcher ): Array<ScoreDoc> {
         val hits = isearcher.search(query, 50).scoreDocs
 
         // Make sure we actually found something
@@ -97,13 +128,42 @@ class QueryIndex {
             println("Failed to retrieve documents for query \"$query\"")
             return emptyArray()
         }
-        ireader.close()
         return hits
     }
 
 
+    fun runQueries(queries: List<QueryWithId>, ) {
+        // Create file to store results, or clear it if it exists
+        val simName = similarity::class.simpleName
+        val resultsFile = File("results/${simName}_results.txt")
+
+        val ireader = DirectoryReader.open(directory)
+        val isearcher = IndexSearcher(ireader).also { it.similarity = similarity }
+
+        if (!resultsFile.createNewFile()) {
+            resultsFile.writeText("")  // Clear the file if it exists
+        }
     
-    // ASSIGNMENT 1 CODE
+        for ((index, queryWithId) in queries.withIndex()) {
+            val query = queryWithId.query
+            val queryId = queryWithId.num
+            // Use IndexSearcher to retrieve documents from the index based on BooleanQuery
+            val hits = search(query, isearcher)
+   
+            // Write hits to file compatible with trec_eval
+            for ((j,hit) in hits.withIndex()) {
+              
+      
+                val doc = isearcher.doc(hit.doc)
+                val docId = doc.get("docId")  
+                resultsFile.appendText("${queryId} Q0 $docId ${j+1} ${hit.score} $simName\n")
+            }
+        }
+        ireader.close()
+        println("Results saved to file.")
+    }
+    
+        // ASSIGNMENT 1 CODE
     fun correctQrel(fileName: String) {
         // create file to store corrected qrel if it doesn't exist
         File("cran/corcranqrel").let { qrelFile ->
@@ -118,41 +178,19 @@ class QueryIndex {
         }
     }
 
-    fun runQueries(queries: List<QueryWithId>) {
-        // Create file to store results, or clear it if it exists
-        val simName = similarity::class.simpleName
-        val resultsFile = File("results/${simName}_results.txt")
-        if (!resultsFile.createNewFile()) {
-            resultsFile.writeText("")  // Clear the file if it exists
-        }
-    
-        for ((index, queryWithId) in queries.withIndex()) {
-            val query = queryWithId.query
-            val queryId = queryWithId.num
-            // Use IndexSearcher to retrieve documents from the index based on BooleanQuery
-            val hits = search(query)
-            // Write hits to file compatible with trec_eval
-            for ((j, hit) in hits.withIndex()) {
-                resultsFile.appendText("${queryId} Q0 ${hit.doc + 1} ${j + 1} ${hit.score} $simName\n")
-            }
-        }
-        println("Results saved to file.")
-    }
-    
-
     companion object {
         @JvmStatic fun main(args: Array<String>) {
-//            if (args.size !in 1..3) {
-//                println("Expected Arguments.")
-//                exitProcess(1)
-//            }
+            /*if (args.size !in 1..3) {
+                println("Expected Arguments.")
+                    exitProcess(1)
+            }*/
+
             val qi = QueryIndex()
             val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
-
             
             // use existing index unless -i flag is passed
             if (args.isNotEmpty() && args[0] == "-i") {
-                // Call the index functions
+                
                 ind.indexLaTimes()
                 ind.indexFt()
                 ind.indexFBis()
@@ -160,12 +198,16 @@ class QueryIndex {
             } else {
                 println("Using existing index.")
             }
-
+            
             ind.shutdown()
+            val queries = qi.importQueries()
+            qi.runQueries(queries)
+
+            qi.directory.close()
             exitProcess(0)
 
             // ASSIGNMENT 1 CODE
-//            qi.buildIndex(args[0])
+//           
 //
 //            if (args.size >= 2) {
 //                val queries = qi.importQueries(args[1])

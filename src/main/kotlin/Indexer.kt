@@ -155,7 +155,6 @@ class Indexer(private val analyzer: Analyzer,
     
     fun shutdown() {
         iwriter.close()
-        directory.close()
     }
 
 
