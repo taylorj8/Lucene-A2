@@ -65,7 +65,7 @@ class Indexer(private val analyzer: Analyzer,
     }
 
     fun indexLaTimes() {
-       
+
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
         var totalDocs = 0   
         subfolders?.forEach { folder ->
@@ -120,10 +120,67 @@ class Indexer(private val analyzer: Analyzer,
             }
         }
         println(totalDocs.toString() + " Financial Times documents indexed.")
-    } 
+    }
+
+    fun removePjgTagsFromDoc(doc: String): String {
+        // Regular expression to match PJG tags, supporting multiline content within each tag
+        val pjgTagPattern = Regex("<!-- PJG[\\s\\S]*?-->", RegexOption.DOT_MATCHES_ALL);
+        val matches = pjgTagPattern.findAll(doc)
+        return doc.replace(pjgTagPattern, "")
+    }
+
+    fun extractDate(text: String): String? {
+        // Regular expression to match a date in the format "Month Day, Year"
+        val datePattern = Regex("\\b(January|February|March|April|May|June|July|August|September|October|November|December) \\d{1,2}, \\d{4}\\b")
+
+        // Find the first match of the date pattern in the text
+        val match = datePattern.find(text)
+
+        return if (match != null) {
+           // println("Found date: ${match.value}")  // Print the found date for verification
+            match.value  // Return the matched date
+        } else {
+           // println("No date found.")
+            null  // Return null if no match is found
+        }
+    }
+
+
 
 
     fun indexFr94() {
+
+        val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
+        var totalDocs = 0
+        subfolders?.forEach { folder ->
+            val docs = separateDocs(folder.absolutePath)
+            totalDocs += docs.size
+            for (doc in docs) {
+          val newdoc=     removePjgTagsFromDoc(doc);
+             // print(newdoc);
+
+               val docId = findByTagAndProcess(newdoc, "DOCNO")
+               val header = findByTagAndProcess(newdoc, "DOCTITLE")
+                val summary = findByTagAndProcess(newdoc, "SUMMARY");
+               val body =  findByTagAndProcess(newdoc,"SUPPLEM");
+                val sb = StringBuilder()
+                sb.append(summary).append(body)
+                val text = sb.toString();
+                val date = findByTagAndProcess(newdoc,"DATE");
+                val processedDate = date?.let { extractDate(it) };
+                //print("printing date");
+               // print(processedDate+"\n");
+
+                val iDoc = Document().apply {
+                    header?.let { add(TextField("headline", it, Field.Store.YES)) }
+                    text?.let { add(TextField("text", it, Field.Store.YES)) }
+                    docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                    processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
+                }
+                iwriter.addDocument(iDoc)
+            }
+        }
+        println(totalDocs.toString() + " FR94 documents indexed.")
 
     } 
 
