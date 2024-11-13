@@ -41,6 +41,7 @@ class QueryIndex {
     }
 
     data class QueryWithId(val num: String, val query: BooleanQuery)
+    
     fun sanitizeQuery(input: String): String {
         // Replace newlines and tabs with spaces
         var sanitized = input.replace("\n", " ").replace("\t", " ")
@@ -162,27 +163,10 @@ class QueryIndex {
         ireader.close()
         println("Results saved to file.")
     }
-    
-        // ASSIGNMENT 1 CODE
-    fun correctQrel(fileName: String) {
-        println("here")
-        // create file to store corrected qrel if it doesn't exist
-        File("qrels/qrels.assignment2.part1.corrected").let { qrelFile ->
-            if (qrelFile.createNewFile()) {
-                File(fileName).forEachLine { line ->
-                    val judgements = line.split(" +".toRegex()).filter { line != "" }
-                    val ranking = if(judgements[2] == "-1") 5 else judgements[2]
-                    qrelFile.appendText(judgements[0] + " 0 " + judgements[1] + " " + ranking + "\n")
-                }
-                println("Corrected qrel file.")
-            }
-        }
-    }
+
 
     companion object {
         @JvmStatic fun main(args: Array<String>) {
-
-
             val qi = QueryIndex()
 
             
@@ -204,7 +188,6 @@ class QueryIndex {
 
             qi.directory.close()
             exitProcess(0)
-
         }
     }
 }
