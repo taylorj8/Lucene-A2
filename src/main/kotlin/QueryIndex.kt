@@ -98,12 +98,12 @@ class QueryIndex {
     
                 title?.let {
                     val titleQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsTitle).parse(it)
-                    val boostedTitleQuery = BoostQuery(titleQuery, 2.0f)
+                    val boostedTitleQuery = BoostQuery(titleQuery, 1.0f)
                     booleanQuery.add(boostedTitleQuery, BooleanClause.Occur.SHOULD)
                 }
                 desc?.let {
                     val descQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDesc).parse(it)
-                    val boostedDescQuery = BoostQuery(descQuery, 1.5f)
+                    val boostedDescQuery = BoostQuery(descQuery, 1.0f)
                     booleanQuery.add(boostedDescQuery, BooleanClause.Occur.SHOULD)
                 }                
                 narr?.let {
@@ -164,24 +164,25 @@ class QueryIndex {
         println("Results saved to file.")
     }
 
+
     companion object {
         @JvmStatic fun main(args: Array<String>) {
-
             val qi = QueryIndex()
-            val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
+
             
             // use existing index unless -i flag is passed
             if (args.isNotEmpty() && args[0] == "-i") {
-                
+                val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
                 ind.indexLaTimes()
                 ind.indexFt()
                 ind.indexFBis()
+                ind.shutdown()
                 //ind.indexFr94()
             } else {
                 println("Using existing index.")
             }
             
-            ind.shutdown()
+            
             val queries = qi.importQueries()
             qi.runQueries(queries)
 
