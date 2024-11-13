@@ -48,7 +48,6 @@ class Indexer(private val analyzer: Analyzer,
                 }
             }
         }
-        println(docs.size.toString() + " documents separated from \"$directory\".")
         return docs
     }
     

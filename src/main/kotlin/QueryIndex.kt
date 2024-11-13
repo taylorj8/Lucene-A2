@@ -97,12 +97,12 @@ class QueryIndex {
     
                 title?.let {
                     val titleQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsTitle).parse(it)
-                    val boostedTitleQuery = BoostQuery(titleQuery, 2.0f)
+                    val boostedTitleQuery = BoostQuery(titleQuery, 1.0f)
                     booleanQuery.add(boostedTitleQuery, BooleanClause.Occur.SHOULD)
                 }
                 desc?.let {
                     val descQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDesc).parse(it)
-                    val boostedDescQuery = BoostQuery(descQuery, 1.5f)
+                    val boostedDescQuery = BoostQuery(descQuery, 1.0f)
                     booleanQuery.add(boostedDescQuery, BooleanClause.Occur.SHOULD)
                 }                
                 narr?.let {
@@ -165,8 +165,9 @@ class QueryIndex {
     
         // ASSIGNMENT 1 CODE
     fun correctQrel(fileName: String) {
+        println("here")
         // create file to store corrected qrel if it doesn't exist
-        File("cran/corcranqrel").let { qrelFile ->
+        File("qrels/qrels.assignment2.part1.corrected").let { qrelFile ->
             if (qrelFile.createNewFile()) {
                 File(fileName).forEachLine { line ->
                     val judgements = line.split(" +".toRegex()).filter { line != "" }
@@ -180,68 +181,30 @@ class QueryIndex {
 
     companion object {
         @JvmStatic fun main(args: Array<String>) {
-            /*if (args.size !in 1..3) {
-                println("Expected Arguments.")
-                    exitProcess(1)
-            }*/
+
 
             val qi = QueryIndex()
-            val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
+
             
             // use existing index unless -i flag is passed
             if (args.isNotEmpty() && args[0] == "-i") {
-                
+                val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
                 ind.indexLaTimes()
                 ind.indexFt()
                 ind.indexFBis()
+                ind.shutdown()
                 //ind.indexFr94()
             } else {
                 println("Using existing index.")
             }
             
-            ind.shutdown()
+            
             val queries = qi.importQueries()
             qi.runQueries(queries)
 
             qi.directory.close()
             exitProcess(0)
 
-            // ASSIGNMENT 1 CODE
-//           
-//
-//            if (args.size >= 2) {
-//                val queries = qi.importQueries(args[1])
-
-//                qi.runQueries(queries)
-//
-//                // change similarity score and re-run queries
-//                qi.similarity = ClassicSimilarity()
-//                qi.buildIndex(args[0])
-//                qi.runQueries(queries)
-//                if (args.size == 3) {
-//                    qi.correctQrel(args[2])
-//                }
-//
-//                qi.shutdown()
-//                exitProcess(0)
-//            }
-//
-//            println("No arguments passed, running in search mode. Press enter with no search term to exit.")
-//            while (true) {
-//                print("🔍: ")
-//                val searchTerm = readlnOrNull()
-//                if (searchTerm.isNullOrEmpty()) {
-//                    print("Shutting down\n")
-//                    qi.shutdown()
-//                    exitProcess(0)
-//                }
-//
-//                val hits = qi.search(searchTerm)
-//                print("${hits.size} results found:\n")
-//                for (hit in hits) {
-//                    print(hit.doc.toString() + "\n")
-//                }
-//            }
         }
     }
 }
