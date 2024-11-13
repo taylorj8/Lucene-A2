@@ -41,6 +41,7 @@ class QueryIndex {
     }
 
     data class QueryWithId(val num: String, val query: BooleanQuery)
+    
     fun sanitizeQuery(input: String): String {
         // Replace newlines and tabs with spaces
         var sanitized = input.replace("\n", " ").replace("\t", " ")
@@ -162,28 +163,9 @@ class QueryIndex {
         ireader.close()
         println("Results saved to file.")
     }
-    
-        // ASSIGNMENT 1 CODE
-    fun correctQrel(fileName: String) {
-        // create file to store corrected qrel if it doesn't exist
-        File("cran/corcranqrel").let { qrelFile ->
-            if (qrelFile.createNewFile()) {
-                File(fileName).forEachLine { line ->
-                    val judgements = line.split(" +".toRegex()).filter { line != "" }
-                    val ranking = if(judgements[2] == "-1") 5 else judgements[2]
-                    qrelFile.appendText(judgements[0] + " 0 " + judgements[1] + " " + ranking + "\n")
-                }
-                println("Corrected qrel file.")
-            }
-        }
-    }
 
     companion object {
         @JvmStatic fun main(args: Array<String>) {
-            /*if (args.size !in 1..3) {
-                println("Expected Arguments.")
-                    exitProcess(1)
-            }*/
 
             val qi = QueryIndex()
             val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
@@ -205,43 +187,6 @@ class QueryIndex {
 
             qi.directory.close()
             exitProcess(0)
-
-            // ASSIGNMENT 1 CODE
-//           
-//
-//            if (args.size >= 2) {
-//                val queries = qi.importQueries(args[1])
-
-//                qi.runQueries(queries)
-//
-//                // change similarity score and re-run queries
-//                qi.similarity = ClassicSimilarity()
-//                qi.buildIndex(args[0])
-//                qi.runQueries(queries)
-//                if (args.size == 3) {
-//                    qi.correctQrel(args[2])
-//                }
-//
-//                qi.shutdown()
-//                exitProcess(0)
-//            }
-//
-//            println("No arguments passed, running in search mode. Press enter with no search term to exit.")
-//            while (true) {
-//                print("🔍: ")
-//                val searchTerm = readlnOrNull()
-//                if (searchTerm.isNullOrEmpty()) {
-//                    print("Shutting down\n")
-//                    qi.shutdown()
-//                    exitProcess(0)
-//                }
-//
-//                val hits = qi.search(searchTerm)
-//                print("${hits.size} results found:\n")
-//                for (hit in hits) {
-//                    print(hit.doc.toString() + "\n")
-//                }
-//            }
         }
     }
 }
