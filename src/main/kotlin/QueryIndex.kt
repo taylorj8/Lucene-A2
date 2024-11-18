@@ -74,6 +74,7 @@ class QueryIndex {
     fun importQueries(): List<QueryWithId> {
         val queries = ArrayList<QueryWithId>()
         val file = File("queries/topics")
+        val qi = QueryIndex();
         if (file.isFile) {
             
             val content = file.readText()
@@ -81,7 +82,15 @@ class QueryIndex {
             while (querySeparator.find()) {
                 
                 val rawQuery = querySeparator.group()
-                val cleanQuery = sanitizeQuery(rawQuery)
+                val wnFilePath = "wn/wn_s.pl"
+                val synonymMap = qi.loadSynonymsFromProlog(wnFilePath)
+//println(synonymMap);
+                val expandedQuery = expandQueryWithPrologSynonyms(rawQuery, synonymMap)
+              //  println(rawQuery);
+               // println(expandedQuery);
+                val cleanQuery = sanitizeQuery(expandedQuery)
+
+              //  print(cleanQuery);
                 val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
@@ -117,6 +126,7 @@ class QueryIndex {
             }
         }
         println("${queries.size} queries prepared.")
+
         return queries
     }    
             
@@ -165,6 +175,49 @@ class QueryIndex {
     }
 
 
+    fun loadSynonymsFromProlog(filePath: String): Map<String, List<String>> {
+        val synonymMap = mutableMapOf<String, MutableList<String>>()
+      //  val regex = Regex("s\\((\\d+), \\d+, '(.*?)', [a-z], \\d+, \\d+\\)\\.")
+        val regex = Regex("s\\((\\d+),\\d+,'(.*?)',n,\\d+,\\d+\\)\\.")
+
+        File(filePath).useLines { lines ->
+            for (line in lines) {
+                val match = regex.find(line)
+                if (match != null) {
+                    val synsetId = match.groupValues[1]
+                    val word = match.groupValues[2]
+
+                    synonymMap.computeIfAbsent(synsetId) { mutableListOf() }.add(word)
+                }
+            }
+        }
+        return synonymMap
+    }
+    fun getSynonymsFromMap(word: String, synonymMap: Map<String, List<String>>): List<String> {
+        val lowerCaseWord = word.lowercase()
+        for ((_, words) in synonymMap) {
+            if (lowerCaseWord in words.map { it.lowercase() }) {
+                return words.filter { it.lowercase() != lowerCaseWord }  // Exclude original word
+            }
+        }
+        return emptyList()
+    }
+
+    fun expandQueryWithPrologSynonyms(query: String, synonymMap: Map<String, List<String>>): String {
+        val words = query.split("\\s+".toRegex())
+       // println(words);
+        val expandedWords = words.flatMap { word ->
+           println(word);
+            println(getSynonymsFromMap(word, synonymMap))
+            listOf(word) + getSynonymsFromMap(word, synonymMap)
+
+        }
+       // println(expandedWords);
+        return expandedWords.joinToString(" ")
+    }
+
+
+
     companion object {
         @JvmStatic fun main(args: Array<String>) {
             val qi = QueryIndex()
@@ -176,18 +229,29 @@ class QueryIndex {
                 ind.indexLaTimes()
                 ind.indexFt()
                 ind.indexFBis()
+                ind.indexFr94()
                 ind.shutdown()
                 //ind.indexFr94()
             } else {
+//                val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
+//                ind.indexLaTimes()
+//                ind.indexFt()
+//                ind.indexFBis()
+//               // ind.shutdown()
+//                ind.indexFr94()
+//                ind.shutdown()
                 println("Using existing index.")
             }
-            
-            
-            val queries = qi.importQueries()
-            qi.runQueries(queries)
 
-            qi.directory.close()
+
+
+            val queries = qi.importQueries()
+
+            qi.runQueries(queries);
+//
+//            qi.directory.close()
             exitProcess(0)
-        }
-    }
+
+
+    }}
 }
