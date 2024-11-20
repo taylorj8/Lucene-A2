@@ -19,6 +19,8 @@ import org.apache.lucene.search.similarities.Similarity
 import java.io.File
 import java.nio.file.Paths
 import java.util.regex.Pattern
+import java.io.FileWriter
+import java.io.BufferedWriter
 import kotlin.system.exitProcess
 
 class Indexer(private val analyzer: Analyzer, 
@@ -50,6 +52,16 @@ class Indexer(private val analyzer: Analyzer,
         }
         return docs
     }
+    fun saveDocumentToFile(document: Document, filePath: String) {
+        // Use FileWriter with append mode enabled
+        BufferedWriter(FileWriter(filePath, true)).use { writer ->
+            writer.write("Document Fields:\n")
+            for (field in document.fields) {
+                writer.write("${field.name()}: ${field.stringValue()}\n")
+            }
+            writer.write("\n") // Add a newline to separate documents
+        }
+    }
     
 
     fun findByTagAndProcess(doc: String, tag: String): String? {
@@ -65,30 +77,28 @@ class Indexer(private val analyzer: Analyzer,
     }
 
     fun indexLaTimes() {
-
+        File("docs/test/la.txt").printWriter().use { writer ->
+        }
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
         var totalDocs = 0   
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
-            for (doc in docs) {
+            for ((i, doc) in docs.withIndex()){
                 
                 val docId = findByTagAndProcess(doc, "DOCID")
                 val headline = findByTagAndProcess(doc, "HEADLINE")
                 val text = findByTagAndProcess(doc, "TEXT")
-                //Optional
                 val date = findByTagAndProcess(doc, "DATE")
-                //val section = findByTagAndProcess(doc, "SECTION")
-                //val byline = findByTagAndProcess(doc, "BYLINE")
 
                 val iDoc = Document().apply {
                     headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                     text?.let { add(TextField("text", it, Field.Store.YES)) }
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                     date?.let { add(TextField("date", it, Field.Store.YES)) }
-                    //Optional
-                    //section?.let { add(StringField("section", it, Field.Store.YES)) }
-                    //byline?.let { add(StringField("byline", it, Field.Store.YES)) }
+                }
+                if (i < 50) {
+                    saveDocumentToFile(iDoc, "docs/test/la.txt")
                 }
                 iwriter.addDocument(iDoc)
             }
@@ -98,25 +108,34 @@ class Indexer(private val analyzer: Analyzer,
     } 
 
     fun indexFt() {
+        //clears the test file of any previous docs
+        File("docs/test/ft.txt").printWriter().use { writer ->
+        }
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
-        var totalDocs = 0     
+        var totalDocs = 0 
+            
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
-            for (doc in docs) {
+         
+            for ((i, doc) in docs.withIndex()){
+                
                 val docId = findByTagAndProcess(doc, "DOCNO")
                 val headline = findByTagAndProcess(doc, "HEADLINE")
                 val text = findByTagAndProcess(doc, "TEXT")
                 val date = findByTagAndProcess(doc, "DATE")
-
 
                 val iDoc = Document().apply {
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                     date?.let { add(TextField("date", it, Field.Store.YES)) }
                     headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                     text?.let { add(TextField("text", it, Field.Store.YES)) }
-            }
-            iwriter.addDocument(iDoc)
+                }
+                //writes the first fifty docs found in each file to the test document
+                if (i < 50) {
+                    saveDocumentToFile(iDoc, "docs/test/ft.txt")
+                }
+                iwriter.addDocument(iDoc)
             }
         }
         println(totalDocs.toString() + " Financial Times documents indexed.")
@@ -149,15 +168,19 @@ class Indexer(private val analyzer: Analyzer,
 
 
     fun indexFr94() {
+        
+        //clears the test file of any previous docs
+        File("docs/test/fr94.txt").printWriter().use { writer ->
+        }
 
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
-            for (doc in docs) {
-          val newdoc=     removePjgTagsFromDoc(doc);
-             // print(newdoc);
+            for ((i, doc) in docs.withIndex()){
+                val newdoc=     removePjgTagsFromDoc(doc);
+                // print(newdoc);
 
                val docId = findByTagAndProcess(newdoc, "DOCNO")
                val header = findByTagAndProcess(newdoc, "DOCTITLE")
@@ -177,6 +200,9 @@ class Indexer(private val analyzer: Analyzer,
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                     processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                 }
+                if (i < 50) {
+                    saveDocumentToFile(iDoc, "docs/test/fr94.txt")
+                }
                 iwriter.addDocument(iDoc)
             }
         }
@@ -186,12 +212,15 @@ class Indexer(private val analyzer: Analyzer,
 
 
     fun indexFBis() {
+        //clears the test file of any previous docs
+        File("docs/test/fbsi.txt").printWriter().use { writer ->
+        }
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0     
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
-            for (doc in docs) {
+            for ((i, doc) in docs.withIndex()){
                 val docId = findByTagAndProcess(doc, "DOCNO")
                 val header = findByTagAndProcess(doc, "TI")
                 val date = findByTagAndProcess(doc, "DATE1")
@@ -203,6 +232,9 @@ class Indexer(private val analyzer: Analyzer,
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                     date?.let { add(TextField("date", it, Field.Store.YES)) }
             }
+            if (i < 50) {
+                saveDocumentToFile(iDoc, "docs/test/fbsi.txt")
+            }
             iwriter.addDocument(iDoc)
             }
         }
@@ -212,7 +244,5 @@ class Indexer(private val analyzer: Analyzer,
     fun shutdown() {
         iwriter.close()
     }
-
-
 
 }
