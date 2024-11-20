@@ -51,7 +51,7 @@ class QueryIndex {
         for (char in specialChars) {
             sanitized = sanitized.replace(char, "")
         }
-    
+       
         return sanitized
     }
 
@@ -68,6 +68,29 @@ class QueryIndex {
             return matcher.group().replace(Regex("^\\s*(Number\\:|Description\\:|Narrative\\:)\\s*"), "")   
         }
         return null
+    }
+
+    fun getDates(text: String): String {
+        // Regular expression to match the patterns
+        val regex = Regex("""\b(17\d{2}|18\d{2}|19\d{2}|20\d{2})(s?)\b""", RegexOption.IGNORE_CASE)
+
+        val results = mutableListOf<String>()
+
+        regex.findAll(text).forEach { match ->
+            val matchedValue = match.value
+
+            // check if ends in an "s"
+            if (matchedValue.endsWith("s", ignoreCase = true)) {
+                // get the decade e,g the 90s
+                val decadeStart = matchedValue.substring(0, 4).toInt()
+                // add all years in that decade e.g 90, 91, 92, 93, 94.....
+                results.addAll((decadeStart..decadeStart + 9).map { it.toString() })
+            } else {
+                // else add the single year
+                results.add(matchedValue)
+            }
+        }
+        return if (results.isEmpty()) "null" else results.joinToString(", ")
     }
 
 
@@ -87,7 +110,7 @@ class QueryIndex {
 //println(synonymMap);
                 val expandedQuery = expandQueryWithPrologSynonyms(rawQuery, synonymMap)
               //  println(rawQuery);
-               // println(expandedQuery);
+                println(expandedQuery);
                 val cleanQuery = sanitizeQuery(expandedQuery)
 
               //  print(cleanQuery);
@@ -95,16 +118,20 @@ class QueryIndex {
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
                 val narr = findByTagAndProcessQuery(cleanQuery, "narr", " " )
-           
+                val date = getDates(cleanQuery)
+    
+                
                
                 // Specify the fields and weights for the MultiFieldQueryParser
                 val fields = arrayOf("headline", "date", "text")
-                val fieldWeightsTitle = mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
-                val fieldWeightsDesc = mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
-                val fieldWeightsNarr = mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
-    
+                val fieldWeightsTitle = mapOf("headline" to 0.4f, "date" to 0.0f, "text" to 1f)
+                val fieldWeightsDesc = mapOf("headline" to 0.4f, "date" to 0.0f, "text" to 1f)
+                val fieldWeightsNarr = mapOf("headline" to 0.4f, "date" to 0.0f, "text" to 1f)
+                var fieldWeightsDate = mapOf("headline" to 0.2f, "date" to 1f, "text" to 0.2f)
+                if (date != "null") {
+                    fieldWeightsDate = mapOf("headline" to 0.0f, "date" to 0f, "text" to 0.0f)
+                }
                 val booleanQuery = BooleanQuery.Builder()
-    
                 title?.let {
                     val titleQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsTitle).parse(it)
                     val boostedTitleQuery = BoostQuery(titleQuery, 1.0f)
@@ -114,15 +141,20 @@ class QueryIndex {
                     val descQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDesc).parse(it)
                     val boostedDescQuery = BoostQuery(descQuery, 1.0f)
                     booleanQuery.add(boostedDescQuery, BooleanClause.Occur.SHOULD)
-                }                
+                }
                 narr?.let {
                     val narrQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsNarr).parse(it)
                     val boostedNarrQuery = BoostQuery(narrQuery, 1.0f)
                     booleanQuery.add(boostedNarrQuery, BooleanClause.Occur.SHOULD)
                 }
+                date?.let {
+                    val dateQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDate).parse(it)
+                    val boostedDateQuery = BoostQuery(dateQuery, 1.0f)
+                    booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)
+                }
                 num?.let {
                     queries.add(QueryWithId(it, booleanQuery.build()))
-                }            
+                }
             }
         }
         println("${queries.size} queries prepared.")
@@ -132,7 +164,7 @@ class QueryIndex {
             
 
     fun search(query: BooleanQuery,  isearcher : IndexSearcher ): Array<ScoreDoc> {
-        val hits = isearcher.search(query, 50).scoreDocs
+        val hits = isearcher.search(query, 1000).scoreDocs
 
         // Make sure we actually found something
         if (hits.isEmpty()) {
@@ -160,7 +192,7 @@ class QueryIndex {
             val queryId = queryWithId.num
             // Use IndexSearcher to retrieve documents from the index based on BooleanQuery
             val hits = search(query, isearcher)
-   
+            println("Query ${queryId} searched")
             // Write hits to file compatible with trec_eval
             for ((j,hit) in hits.withIndex()) {
               
@@ -207,8 +239,8 @@ class QueryIndex {
         val words = query.split("\\s+".toRegex())
        // println(words);
         val expandedWords = words.flatMap { word ->
-           println(word);
-            println(getSynonymsFromMap(word, synonymMap))
+          // println(word);
+           // println(getSynonymsFromMap(word, synonymMap))
             listOf(word) + getSynonymsFromMap(word, synonymMap)
 
         }
@@ -231,7 +263,6 @@ class QueryIndex {
                 ind.indexFBis()
                 ind.indexFr94()
                 ind.shutdown()
-                //ind.indexFr94()
             } else {
 //                val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
 //                ind.indexLaTimes()
