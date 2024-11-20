@@ -51,7 +51,7 @@ class QueryIndex {
         for (char in specialChars) {
             sanitized = sanitized.replace(char, "")
         }
-    
+       
         return sanitized
     }
 
@@ -122,7 +122,7 @@ class QueryIndex {
             
 
     fun search(query: BooleanQuery,  isearcher : IndexSearcher ): Array<ScoreDoc> {
-        val hits = isearcher.search(query, 50).scoreDocs
+        val hits = isearcher.search(query, 1000).scoreDocs
 
         // Make sure we actually found something
         if (hits.isEmpty()) {
@@ -150,7 +150,7 @@ class QueryIndex {
             val queryId = queryWithId.num
             // Use IndexSearcher to retrieve documents from the index based on BooleanQuery
             val hits = search(query, isearcher)
-   
+            println("Query ${queryId} searched")
             // Write hits to file compatible with trec_eval
             for ((j,hit) in hits.withIndex()) {
               
@@ -176,8 +176,8 @@ class QueryIndex {
                 ind.indexLaTimes()
                 ind.indexFt()
                 ind.indexFBis()
+                ind.indexFr94()
                 ind.shutdown()
-                //ind.indexFr94()
             } else {
                 println("Using existing index.")
             }
