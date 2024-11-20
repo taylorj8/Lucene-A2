@@ -1,22 +1,17 @@
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.custom.CustomAnalyzer
-import org.apache.lucene.document.Document
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.index.IndexWriter
-import org.apache.lucene.index.IndexWriterConfig
-import org.apache.lucene.document.Field
-import org.apache.lucene.document.TextField
-import org.apache.lucene.document.StringField
 import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.similarities.BM25Similarity
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
-import org.apache.lucene.queryparser.classic.QueryParser
-import org.apache.lucene.search.BoostQuery
 import org.apache.lucene.search.similarities.Similarity
 
 import java.io.File
@@ -27,7 +22,7 @@ import kotlin.system.exitProcess
 
 class QueryIndex {
     // Need to use the same analyzer and index directory throughout, so initialize them here
-    private val directory: Directory = FSDirectory.open(Paths.get("index"))
+    val directory: Directory = FSDirectory.open(Paths.get("index"))
     private val analyzer: Analyzer = CustomAnalyzer.builder()
         .withTokenizer("standard")
         .addTokenFilter("lowercase")
@@ -36,8 +31,14 @@ class QueryIndex {
         .build()
 
     var similarity: Similarity
+    var weights: Map<String, Map<String, Float>>
     init {
         this.similarity = BM25Similarity()
+        this.weights = mapOf(
+            "title" to mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f),
+            "desc" to mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f),
+            "narr" to mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
+        )
     }
 
     data class QueryWithId(val num: String, val query: BooleanQuery)
@@ -55,7 +56,7 @@ class QueryIndex {
         return sanitized
     }
 
-    fun findByTagAndProcessQuery(doc: String, tag1: String, tag2: String): String? {
+    private fun findByTagAndProcessQuery(doc: String, tag1: String, tag2: String): String? {
     
         val pattern = if(tag1 == "narr"){
             "(?<=<${tag1}>)([\\s\\S]*?)$"
@@ -86,30 +87,23 @@ class QueryIndex {
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
                 val narr = findByTagAndProcessQuery(cleanQuery, "narr", " " )
-           
-               
+
                 // Specify the fields and weights for the MultiFieldQueryParser
                 val fields = arrayOf("headline", "date", "text")
-                val fieldWeightsTitle = mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
-                val fieldWeightsDesc = mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
-                val fieldWeightsNarr = mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
     
                 val booleanQuery = BooleanQuery.Builder()
     
                 title?.let {
-                    val titleQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsTitle).parse(it)
-                    val boostedTitleQuery = BoostQuery(titleQuery, 1.0f)
-                    booleanQuery.add(boostedTitleQuery, BooleanClause.Occur.SHOULD)
+                    val titleQuery = MultiFieldQueryParser(fields, analyzer, weights["title"]).parse(it)
+                    booleanQuery.add(titleQuery, BooleanClause.Occur.SHOULD)
                 }
                 desc?.let {
-                    val descQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDesc).parse(it)
-                    val boostedDescQuery = BoostQuery(descQuery, 1.0f)
-                    booleanQuery.add(boostedDescQuery, BooleanClause.Occur.SHOULD)
+                    val descQuery = MultiFieldQueryParser(fields, analyzer, weights["desc"]).parse(it)
+                    booleanQuery.add(descQuery, BooleanClause.Occur.SHOULD)
                 }                
                 narr?.let {
-                    val narrQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsNarr).parse(it)
-                    val boostedNarrQuery = BoostQuery(narrQuery, 1.0f)
-                    booleanQuery.add(boostedNarrQuery, BooleanClause.Occur.SHOULD)
+                    val narrQuery = MultiFieldQueryParser(fields, analyzer, weights["narr"]).parse(it)
+                    booleanQuery.add(narrQuery, BooleanClause.Occur.SHOULD)
                 }
                 num?.let {
                     queries.add(QueryWithId(it, booleanQuery.build()))
@@ -145,7 +139,7 @@ class QueryIndex {
             resultsFile.writeText("")  // Clear the file if it exists
         }
     
-        for ((index, queryWithId) in queries.withIndex()) {
+        for (queryWithId in queries) {
             val query = queryWithId.query
             val queryId = queryWithId.num
             // Use IndexSearcher to retrieve documents from the index based on BooleanQuery
@@ -153,11 +147,9 @@ class QueryIndex {
    
             // Write hits to file compatible with trec_eval
             for ((j,hit) in hits.withIndex()) {
-              
-      
                 val doc = isearcher.doc(hit.doc)
-                val docId = doc.get("docId")  
-                resultsFile.appendText("${queryId} Q0 $docId ${j+1} ${hit.score} $simName\n")
+                val docId = doc["docId"]
+                resultsFile.appendText("$queryId Q0 $docId ${j+1} ${hit.score} $simName\n")
             }
         }
         ireader.close()
@@ -168,25 +160,47 @@ class QueryIndex {
     companion object {
         @JvmStatic fun main(args: Array<String>) {
             val qi = QueryIndex()
+            var queries: List<QueryWithId>
+            var ind: Indexer? = null
 
-            
-            // use existing index unless -i flag is passed
-            if (args.isNotEmpty() && args[0] == "-i") {
-                val ind = Indexer(qi.analyzer, qi.directory, qi.similarity)
-                ind.indexLaTimes()
-                ind.indexFt()
-                ind.indexFBis()
-                ind.shutdown()
-                //ind.indexFr94()
-            } else {
-                println("Using existing index.")
+            // index docs and prepare queries in parallel
+            val startTime = System.currentTimeMillis()
+            runBlocking {
+                // use existing index unless -i flag is passed
+                if (args.contains("-i")) {
+                    println("Building index...")
+                    ind = Indexer(qi.analyzer, qi.directory)
+                    // time the indexing process
+
+                    launch(Dispatchers.Default) { ind!!.indexLaTimes() }
+                    launch(Dispatchers.Default) { ind!!.indexFt() }
+                    launch(Dispatchers.Default) { ind!!.indexFBis() }
+                    launch(Dispatchers.Default) { ind!!.indexFr94() }
+
+                } else {
+                    println("Using existing index.")
+                }
+                queries = qi.importQueries()
             }
-            
-            
-            val queries = qi.importQueries()
-            qi.runQueries(queries)
+            val endTime = System.currentTimeMillis()
+            println("Indexing took ${(endTime - startTime) / 1000}s")
 
-            qi.directory.close()
+            // shutdown the indexer if it was initialized
+            ind?.run {
+                shutdown()
+            }
+
+            if (args.contains("-g")) {
+                println("Running Grid Search")
+                val gridSearch = GridSearch(qi, queries)
+                gridSearch.searchSimilarities()
+//                gridSearch.searchWeights()
+                gridSearch.runTrecEval()
+            } else {
+                qi.runQueries(queries)
+
+                qi.directory.close()
+            }
             exitProcess(0)
         }
     }
