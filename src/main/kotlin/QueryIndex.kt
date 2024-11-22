@@ -42,7 +42,7 @@ class QueryIndex {
 
     data class QueryWithId(val num: String, val query: Query)
     
-    fun sanitizeQuery(input: String): String {
+    private fun sanitizeQuery(input: String): String {
         // Replace newlines and tabs with spaces
         var sanitized = input.replace("\n", " ").replace("\t", " ")
     
@@ -65,7 +65,7 @@ class QueryIndex {
         val matcher = Pattern.compile(pattern).matcher(doc)
             
         if (matcher.find()) {
-            return matcher.group().replace(Regex("^\\s*(Number\\:|Description\\:|Narrative\\:)\\s*"), "")   
+            return matcher.group().replace(Regex("^\\s*(Number\\:|Description\\:|Narrative\\:)\\s*"), "")
         }
         return null
     }
@@ -194,19 +194,19 @@ class QueryIndex {
             // if args contains flag starting in -g, run grid search
             if (args.any { it.startsWith("-g")}) {
                 GridSearch(qi).run {
-                    if (args.contains("-gs")) {
+                    if (args.contains("-gs") || args.contains("-g")) {
                         searchSimilarities()
                         runTrecEval("grid_search/similarities", listOf("classic", "bm25", "lmd", "lmj"))
                     }
-                    if (args.contains("-gw")) {
+                    if (args.contains("-gw") || args.contains("-g")) {
                         searchWeights()
                         runTrecEval("grid_search/weights", listOf("title", "desc", "narr"))
                     }
-                    if (args.contains("-gc")) {
+                    if (args.contains("-gc") || args.contains("-g")) {
                         searchComparativeWeights()
                         runTrecEval("grid_search/weights/comp")
                     }
-                    if (args.contains("-ga")) {
+                    if (args.contains("-ga") || args.contains("-g")) {
                         searchAnalyzers()
                         runTrecEval("grid_search/analyzers", listOf("tokenizer", "token_filter"))
                     }

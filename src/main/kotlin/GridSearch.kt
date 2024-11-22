@@ -56,10 +56,7 @@ class GridSearch(val qi: QueryIndex) {
                 for (lambda in lambdas) {
                     launch(Dispatchers.Default) {
                         qi.similarity = LMJelinekMercerSimilarity(lambda)
-                        searchAndStoreResults(
-                            "grid_search/lmj/lambda=$lambda.txt",
-                            queries
-                        )
+                        searchAndStoreResults("grid_search/similarities/lmj/lambda=$lambda.txt", queries)
                         progress.step()
                     }
                 }
@@ -113,7 +110,7 @@ class GridSearch(val qi: QueryIndex) {
         val descWeights = mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.8f)
         val narrWeights = mapOf("headline" to 0.3f, "date" to 0.6f, "text" to 0.9f)
         val totalIterations = testWeights.size.toFloat().pow(3).toLong()
-        ProgressBar("Searching for optimal weights", totalIterations).use { progress ->
+        ProgressBar("Searching for optimal comparative weights", totalIterations).use { progress ->
             runBlocking {
                 for (t in testWeights) {
                     for (d in testWeights) {
@@ -162,7 +159,7 @@ class GridSearch(val qi: QueryIndex) {
                     .build()
                 val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("grid_search/test_index")))
                 try {
-                    ind.indexAll(4)
+                    ind.indexAll()
                     val queries = qi.processQueries()
                     searchAndStoreResults("grid_search/analyzers/tokenizer/$tokenizer.txt", queries)
                 } catch (e: Exception) {
@@ -180,7 +177,7 @@ class GridSearch(val qi: QueryIndex) {
                     .build()
                 val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("grid_search/test_index")))
                 try {
-                    ind.indexAll(4)
+                    ind.indexAll()
                     val queries = qi.processQueries()
                     searchAndStoreResults("grid_search/analyzers/token-filter/$tokenFilter.txt", queries)
                 } catch (e: Exception) {
