@@ -20,6 +20,7 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.regex.Pattern
 import kotlin.system.exitProcess
+import java.text.SimpleDateFormat
 
 class Indexer(private val analyzer: Analyzer, 
             private val directory: Directory,
@@ -50,7 +51,28 @@ class Indexer(private val analyzer: Analyzer,
         }
         return docs
     }
-    
+
+
+
+    fun normalizeDate(dateStr: String): String? {
+        val possibleFormats = listOf(
+            SimpleDateFormat("yyyyMMdd", Locale.ENGLISH),
+            SimpleDateFormat("dd MMM yy", Locale.ENGLISH),
+            SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        )
+        val targetFormat = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH) // Standard ISO format
+
+        for (format in possibleFormats) {
+            try {
+                val parsedDate = format.parse(dateStr.trim())
+                return targetFormat.format(parsedDate)
+            } catch (e: Exception) {
+
+            }
+        }
+        return null
+    }
+
 
     fun findByTagAndProcess(doc: String, tag: String): String? {
         val matcher = Pattern.compile("(?<=<${tag}>)([\\s\\S]*?)(?=</${tag}>)").matcher(doc)
@@ -65,41 +87,8 @@ class Indexer(private val analyzer: Analyzer,
     }
 
     fun indexLaTimes() {
-
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
-        var totalDocs = 0   
-        subfolders?.forEach { folder ->
-            val docs = separateDocs(folder.absolutePath)
-            totalDocs += docs.size
-            for (doc in docs) {
-                
-                val docId = findByTagAndProcess(doc, "DOCID")
-                val headline = findByTagAndProcess(doc, "HEADLINE")
-                val text = findByTagAndProcess(doc, "TEXT")
-                //Optional
-                val date = findByTagAndProcess(doc, "DATE")
-                //val section = findByTagAndProcess(doc, "SECTION")
-                //val byline = findByTagAndProcess(doc, "BYLINE")
-
-                val iDoc = Document().apply {
-                    headline?.let { add(TextField("headline", it, Field.Store.YES)) }
-                    text?.let { add(TextField("text", it, Field.Store.YES)) }
-                    docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                    date?.let { add(TextField("date", it, Field.Store.YES)) }
-                    //Optional
-                    //section?.let { add(StringField("section", it, Field.Store.YES)) }
-                    //byline?.let { add(StringField("byline", it, Field.Store.YES)) }
-                }
-                iwriter.addDocument(iDoc)
-            }
-            
-        }  
-        println(totalDocs.toString() + " LA Times documents indexed.")
-    } 
-
-    fun indexFt() {
-        val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
-        var totalDocs = 0     
+        var totalDocs = 0
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
@@ -108,19 +97,54 @@ class Indexer(private val analyzer: Analyzer,
                 val headline = findByTagAndProcess(doc, "HEADLINE")
                 val text = findByTagAndProcess(doc, "TEXT")
                 val date = findByTagAndProcess(doc, "DATE")
-
+                val normalizedDate = date?.let { normalizeDate(it) }
 
                 val iDoc = Document().apply {
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                    date?.let { add(TextField("date", it, Field.Store.YES)) }
+                    normalizedDate?.let {
+                        val dateField = TextField("date", it, Field.Store.YES)
+                        dateField.boost = 2.0f
+                        add(dateField)
+                    }
                     headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                     text?.let { add(TextField("text", it, Field.Store.YES)) }
+                }
+                iwriter.addDocument(iDoc)
             }
-            iwriter.addDocument(iDoc)
+        }
+        println(totalDocs.toString() + " LA Times documents indexed.")
+    }
+
+
+    fun indexFt() {
+        val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
+        var totalDocs = 0
+        subfolders?.forEach { folder ->
+            val docs = separateDocs(folder.absolutePath)
+            totalDocs += docs.size
+            for (doc in docs) {
+                val docId = findByTagAndProcess(doc, "DOCNO")
+                val headline = findByTagAndProcess(doc, "HEADLINE")
+                val text = findByTagAndProcess(doc, "TEXT")
+                val date = findByTagAndProcess(doc, "DATE")
+                val normalizedDate = date?.let { normalizeDate(it) }
+
+                val iDoc = Document().apply {
+                    docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                    normalizedDate?.let {
+                        val dateField = TextField("date", it, Field.Store.YES)
+                        dateField.boost = 2.0f
+                        add(dateField)
+                    }
+                    headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                    text?.let { add(TextField("text", it, Field.Store.YES)) }
+                }
+                iwriter.addDocument(iDoc)
             }
         }
         println(totalDocs.toString() + " Financial Times documents indexed.")
     }
+
 
     fun removePjgTagsFromDoc(doc: String): String {
         // Regular expression to match PJG tags, supporting multiline content within each tag
@@ -149,66 +173,65 @@ class Indexer(private val analyzer: Analyzer,
 
 
     fun indexFr94() {
-
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
             for (doc in docs) {
-          val newdoc=     removePjgTagsFromDoc(doc);
-             // print(newdoc);
-
-               val docId = findByTagAndProcess(newdoc, "DOCNO")
-               val header = findByTagAndProcess(newdoc, "DOCTITLE")
-                val summary = findByTagAndProcess(newdoc, "SUMMARY");
-               val body =  findByTagAndProcess(newdoc,"SUPPLEM");
-                val sb = StringBuilder()
-                sb.append(summary).append(body)
-                val text = sb.toString();
-                val date = findByTagAndProcess(newdoc,"DATE");
-                val processedDate = date?.let { extractDate(it) };
-                //print("printing date");
-               // print(processedDate+"\n");
+                val docId = findByTagAndProcess(doc, "DOCNO")
+                val headline = findByTagAndProcess(doc, "HEADLINE")
+                val text = findByTagAndProcess(doc, "TEXT")
+                val date = findByTagAndProcess(doc, "DATE")
+                val normalizedDate = date?.let { normalizeDate(it) }
 
                 val iDoc = Document().apply {
-                    header?.let { add(TextField("headline", it, Field.Store.YES)) }
-                    text?.let { add(TextField("text", it, Field.Store.YES)) }
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                    processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
+                    normalizedDate?.let {
+                        val dateField = TextField("date", it, Field.Store.YES)
+                        dateField.boost = 2.0f
+                        add(dateField)
+                    }
+                    headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                    text?.let { add(TextField("text", it, Field.Store.YES)) }
                 }
                 iwriter.addDocument(iDoc)
             }
         }
         println(totalDocs.toString() + " FR94 documents indexed.")
-
-    } 
+    }
 
 
     fun indexFBis() {
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
-        var totalDocs = 0     
+        var totalDocs = 0
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
             for (doc in docs) {
                 val docId = findByTagAndProcess(doc, "DOCNO")
-                val header = findByTagAndProcess(doc, "TI")
-                val date = findByTagAndProcess(doc, "DATE1")
+                val headline = findByTagAndProcess(doc, "TI") // Assuming "TI" is the tag for the title/headline
                 val text = findByTagAndProcess(doc, "TEXT")
+                val date = findByTagAndProcess(doc, "DATE")
+                val normalizedDate = date?.let { normalizeDate(it) }
 
                 val iDoc = Document().apply {
-                    header?.let { add(TextField("headline", it, Field.Store.YES)) }
-                    text?.let { add(TextField("text", it, Field.Store.YES)) }
                     docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                    date?.let { add(TextField("date", it, Field.Store.YES)) }
-            }
-            iwriter.addDocument(iDoc)
+                    normalizedDate?.let {
+                        val dateField = TextField("date", it, Field.Store.YES)
+                        dateField.boost = 2.0f
+                        add(dateField)
+                    }
+                    headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                    text?.let { add(TextField("text", it, Field.Store.YES)) }
+                }
+                iwriter.addDocument(iDoc)
             }
         }
-        println(totalDocs.toString() + " Foreign Broadcast Information Services documents indexed.")
+        println(totalDocs.toString() + " FBIS documents indexed.")
     }
-    
+
+
     fun shutdown() {
         iwriter.close()
     }
