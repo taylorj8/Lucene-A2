@@ -6,12 +6,9 @@ import org.apache.lucene.analysis.custom.CustomAnalyzer
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.ScoreDoc
-import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.search.similarities.BM25Similarity
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
-import org.apache.lucene.search.BooleanClause
-import org.apache.lucene.search.BooleanQuery
+import org.apache.lucene.search.*
+import org.apache.lucene.search.similarities.LMDirichletSimilarity
 import org.apache.lucene.search.similarities.Similarity
 
 import java.io.File
@@ -23,7 +20,7 @@ import kotlin.system.exitProcess
 class QueryIndex {
     // Need to use the same analyzer and index directory throughout, so initialize them here
     val directory: Directory = FSDirectory.open(Paths.get("index"))
-    private val analyzer: Analyzer = CustomAnalyzer.builder()
+    var analyzer: Analyzer = CustomAnalyzer.builder()
         .withTokenizer("standard")
         .addTokenFilter("lowercase")
         .addTokenFilter("stop")
@@ -32,16 +29,18 @@ class QueryIndex {
 
     var similarity: Similarity
     var weights: Map<String, Map<String, Float>>
+    lateinit var partialQueries: List<PartialQuery>
     init {
-        this.similarity = BM25Similarity()
+        this.similarity = LMDirichletSimilarity(500f)
         this.weights = mapOf(
-            "title" to mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f),
-            "desc" to mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f),
-            "narr" to mapOf("headline" to 0.8f, "date" to 0.2f, "text" to 1f)
+            "title" to mapOf("headline" to 0.0f, "date" to 0.2f, "text" to 0.5f),
+            "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.8f),
+            "narr" to mapOf("headline" to 0.3f, "date" to 0.6f, "text" to 0.9f)
         )
     }
 
-    data class QueryWithId(val num: String, val query: BooleanQuery)
+
+    data class QueryWithId(val num: String, val query: Query)
     
     fun sanitizeQuery(input: String): String {
         // Replace newlines and tabs with spaces
@@ -71,51 +70,58 @@ class QueryIndex {
         return null
     }
 
-
-    fun importQueries(): List<QueryWithId> {
-        val queries = ArrayList<QueryWithId>()
+    data class PartialQuery(val num: String?, val title: String?, val desc: String?, val narr: String?)
+    fun importQueries() {
+        val queries = ArrayList<PartialQuery>()
         val file = File("queries/topics")
         if (file.isFile) {
-            
             val content = file.readText()
             val querySeparator = Pattern.compile("(?<=<top>\\s)[\\s\\S]*?(?=</top>)").matcher(content)
             while (querySeparator.find()) {
-                
                 val rawQuery = querySeparator.group()
                 val cleanQuery = sanitizeQuery(rawQuery)
-                val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
+
+                val num = findByTagAndProcessQuery(cleanQuery, "num", "title")
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
-                val narr = findByTagAndProcessQuery(cleanQuery, "narr", " " )
-
-                // Specify the fields and weights for the MultiFieldQueryParser
-                val fields = arrayOf("headline", "date", "text")
-    
-                val booleanQuery = BooleanQuery.Builder()
-    
-                title?.let {
-                    val titleQuery = MultiFieldQueryParser(fields, analyzer, weights["title"]).parse(it)
-                    booleanQuery.add(titleQuery, BooleanClause.Occur.SHOULD)
-                }
-                desc?.let {
-                    val descQuery = MultiFieldQueryParser(fields, analyzer, weights["desc"]).parse(it)
-                    booleanQuery.add(descQuery, BooleanClause.Occur.SHOULD)
-                }                
-                narr?.let {
-                    val narrQuery = MultiFieldQueryParser(fields, analyzer, weights["narr"]).parse(it)
-                    booleanQuery.add(narrQuery, BooleanClause.Occur.SHOULD)
-                }
-                num?.let {
-                    queries.add(QueryWithId(it, booleanQuery.build()))
-                }            
+                val narr = findByTagAndProcessQuery(cleanQuery, "narr", " ")
+                queries.add(PartialQuery(num, title, desc, narr))
             }
         }
-        println("${queries.size} queries prepared.")
-        return queries
+        println("${queries.size} queries imported.")
+        this.partialQueries = queries
+    }
+
+
+    fun processQueries(): List<QueryWithId> {
+        val processedQueries = ArrayList<QueryWithId>()
+        for (query in this.partialQueries) {
+            // Specify the fields and weights for the MultiFieldQueryParser
+            val fields = arrayOf("headline", "date", "text")
+            val booleanQuery = BooleanQuery.Builder()
+
+            query.title?.let {
+                val titleQuery = MultiFieldQueryParser(fields, analyzer, weights["title"]).parse(it)
+                booleanQuery.add(titleQuery, BooleanClause.Occur.SHOULD)
+            }
+            query.desc?.let {
+                val descQuery = MultiFieldQueryParser(fields, analyzer, weights["desc"]).parse(it)
+                booleanQuery.add(descQuery, BooleanClause.Occur.SHOULD)
+            }
+            query.narr?.let {
+                val narrQuery = MultiFieldQueryParser(fields, analyzer, weights["narr"]).parse(it)
+                booleanQuery.add(narrQuery, BooleanClause.Occur.SHOULD)
+            }
+            query.num?.let {
+                processedQueries.add(QueryWithId(it, booleanQuery.build()))
+            }
+        }
+//        println("${processedQueries.size} queries processed.")
+        return processedQueries
     }    
             
 
-    fun search(query: BooleanQuery,  isearcher : IndexSearcher ): Array<ScoreDoc> {
+    fun search(query: Query, isearcher : IndexSearcher ): Array<ScoreDoc> {
         val hits = isearcher.search(query, 50).scoreDocs
 
         // Make sure we actually found something
@@ -160,7 +166,6 @@ class QueryIndex {
     companion object {
         @JvmStatic fun main(args: Array<String>) {
             val qi = QueryIndex()
-            var queries: List<QueryWithId>
             var ind: Indexer? = null
 
             // index docs and prepare queries in parallel
@@ -170,37 +175,46 @@ class QueryIndex {
                 if (args.contains("-i")) {
                     println("Building index...")
                     ind = Indexer(qi.analyzer, qi.directory)
-                    // time the indexing process
 
-                    launch(Dispatchers.Default) { ind!!.indexLaTimes() }
-                    launch(Dispatchers.Default) { ind!!.indexFt() }
-                    launch(Dispatchers.Default) { ind!!.indexFBis() }
-                    launch(Dispatchers.Default) { ind!!.indexFr94() }
-
+                    launch(Dispatchers.Default) { ind!!.indexAll() }
                 } else {
                     println("Using existing index.")
                 }
-                queries = qi.importQueries()
+                qi.importQueries()
             }
-            val endTime = System.currentTimeMillis()
-            println("Indexing took ${(endTime - startTime) / 1000}s")
+            if (args.contains("-i")) {
+                println("Indexing took ${(System.currentTimeMillis() - startTime) / 1000}s")
+            }
 
             // shutdown the indexer if it was initialized
             ind?.run {
                 shutdown()
             }
 
-            if (args.contains("-g")) {
-                println("Running Grid Search")
-                val gridSearch = GridSearch(qi, queries)
-                gridSearch.searchSimilarities()
-//                gridSearch.searchWeights()
-                gridSearch.runTrecEval()
+            // if args contains flag starting in -g, run grid search
+            if (args.any { it.startsWith("-g")}) {
+                GridSearch(qi).run {
+                    if (args.contains("-gs")) {
+                        searchSimilarities()
+                        runTrecEval("grid_search/similarities", listOf("classic", "bm25", "lmd", "lmj"))
+                    }
+                    if (args.contains("-gw")) {
+                        searchWeights()
+                        runTrecEval("grid_search/weights", listOf("title", "desc", "narr"))
+                    }
+                    if (args.contains("-gc")) {
+                        searchComparativeWeights()
+                        runTrecEval("grid_search/weights/comp")
+                    }
+                    if (args.contains("-ga")) {
+                        searchAnalyzers()
+                        runTrecEval("grid_search/analyzers", listOf("tokenizer", "token_filter"))
+                    }
+                }
             } else {
-                qi.runQueries(queries)
-
-                qi.directory.close()
+                qi.run { runQueries(processQueries()) }
             }
+            qi.directory.close()
             exitProcess(0)
         }
     }
