@@ -279,6 +279,10 @@ class QueryIndex {
             val queries = qi.importQueries()
 
             qi.runQueries(queries);
+
+             println("working on query expansion using LLM")
+qillm.runQueries("queries/expanded_queries.txt");
+            println("saved queries using LLM")
 //
 //            qi.directory.close()
             exitProcess(0)
