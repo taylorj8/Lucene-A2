@@ -182,17 +182,18 @@ class Indexer(private val analyzer: Analyzer,
                 val newdoc=     removePjgTagsFromDoc(doc);
                 // print(newdoc);
 
-               val docId = findByTagAndProcess(newdoc, "DOCNO")
-               val header = findByTagAndProcess(newdoc, "DOCTITLE")
+                val docId = findByTagAndProcess(newdoc, "DOCNO")
+                val header = findByTagAndProcess(newdoc, "DOCTITLE")
+                
                 val summary = findByTagAndProcess(newdoc, "SUMMARY");
-               val body =  findByTagAndProcess(newdoc,"SUPPLEM");
+                val body =  findByTagAndProcess(newdoc,"SUPPLEM");
+                val textog =  findByTagAndProcess(newdoc,"TEXT");
                 val sb = StringBuilder()
-                sb.append(summary).append(body)
+                sb.append(summary).append(body).append(textog)
                 val text = sb.toString();
+                
                 val date = findByTagAndProcess(newdoc,"DATE");
                 val processedDate = date?.let { extractDate(it) };
-                //print("printing date");
-               // print(processedDate+"\n");
 
                 val iDoc = Document().apply {
                     header?.let { add(TextField("headline", it, Field.Store.YES)) }
