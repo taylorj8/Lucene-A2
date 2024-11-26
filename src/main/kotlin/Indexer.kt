@@ -86,7 +86,7 @@ class Indexer(private val analyzer: Analyzer,
             totalDocs += docs.size
             for ((i, doc) in docs.withIndex()){
                 
-                val docId = findByTagAndProcess(doc, "DOCID")
+                val docId = findByTagAndProcess(doc, "DOCNO")
                 val headline = findByTagAndProcess(doc, "HEADLINE")
                 val text = findByTagAndProcess(doc, "TEXT")
                 val date = findByTagAndProcess(doc, "DATE")

@@ -120,28 +120,28 @@ class QueryIndex {
                 val fieldWeightsNarr = mapOf("headline" to 0.1f, "date" to 0.0f, "text" to 1f)
                 var fieldWeightsDate = mapOf("headline" to 0.0f, "date" to 0.0f, "text" to 0.0f)
                 if (date != "null") {
-                    fieldWeightsDate = mapOf("headline" to 0.2f, "date" to 1f, "text" to 0.02)
+                    fieldWeightsDate = mapOf("headline" to 0.2f, "date" to 1f, "text" to 0.2f)
                 }
                 val booleanQuery = BooleanQuery.Builder()
     
                 title?.let {
                     val titleQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsTitle).parse(it)
-                    val boostedTitleQuery = BoostQuery(titleQuery, 1.f)
+                    val boostedTitleQuery = BoostQuery(titleQuery, 0.5f)
                     booleanQuery.add(boostedTitleQuery, BooleanClause.Occur.SHOULD)
                 }
                 desc?.let {
                     val descQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDesc).parse(it)
-                    val boostedDescQuery = BoostQuery(descQuery, 1.0f)
+                    val boostedDescQuery = BoostQuery(descQuery, 2.0f)
                     booleanQuery.add(boostedDescQuery, BooleanClause.Occur.SHOULD)
                 }                
                 narr?.let {
                     val narrQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsNarr).parse(it)
-                    val boostedNarrQuery = BoostQuery(narrQuery, 1.0f)
+                    val boostedNarrQuery = BoostQuery(narrQuery, 1.2f)
                     booleanQuery.add(boostedNarrQuery, BooleanClause.Occur.SHOULD)
                 }
                 date?.let {
                     val dateQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDate).parse(it)
-                    val boostedDateQuery = BoostQuery(dateQuery, 1.0f)
+                    val boostedDateQuery = BoostQuery(dateQuery, 0.0f)
                     booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)
                 }
                 num?.let {
