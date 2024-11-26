@@ -115,18 +115,18 @@ class QueryIndex {
                
                 // Specify the fields and weights for the MultiFieldQueryParser
                 val fields = arrayOf("headline", "date", "text")
-                val fieldWeightsTitle = mapOf("headline" to 0.4f, "date" to 0.0f, "text" to 1f)
-                val fieldWeightsDesc = mapOf("headline" to 0.4f, "date" to 0.0f, "text" to 1f)
-                val fieldWeightsNarr = mapOf("headline" to 0.4f, "date" to 0.0f, "text" to 1f)
-                var fieldWeightsDate = mapOf("headline" to 0.2f, "date" to 1f, "text" to 0.2f)
+                val fieldWeightsTitle = mapOf("headline" to 0.1f, "date" to 0.0f, "text" to 1f)
+                val fieldWeightsDesc = mapOf("headline" to 0.1f, "date" to 0.0f, "text" to 1f)
+                val fieldWeightsNarr = mapOf("headline" to 0.1f, "date" to 0.0f, "text" to 1f)
+                var fieldWeightsDate = mapOf("headline" to 0.0f, "date" to 0.0f, "text" to 0.0f)
                 if (date != "null") {
-                    fieldWeightsDate = mapOf("headline" to 0.0f, "date" to 0f, "text" to 0.0f)
+                    fieldWeightsDate = mapOf("headline" to 0.2f, "date" to 1f, "text" to 0.02)
                 }
                 val booleanQuery = BooleanQuery.Builder()
     
                 title?.let {
                     val titleQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsTitle).parse(it)
-                    val boostedTitleQuery = BoostQuery(titleQuery, 1.0f)
+                    val boostedTitleQuery = BoostQuery(titleQuery, 1.f)
                     booleanQuery.add(boostedTitleQuery, BooleanClause.Occur.SHOULD)
                 }
                 desc?.let {
