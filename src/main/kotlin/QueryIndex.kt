@@ -213,8 +213,9 @@ class QueryIndex {
                 } else {
                     println("Using existing index.")
                 }
-                qi.importQueries()
             }
+            qi.importQueries()
+          
             if (args.any { it.startsWith("-i") } ) {
                 println("Indexing took ${(System.currentTimeMillis() - startTime) / 1000}s")
             }

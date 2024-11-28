@@ -71,13 +71,15 @@ class Indexer(
 
     fun indexAll(step: Int = 1, write: Boolean = false) = runBlocking {
         launch(Dispatchers.Default) { indexLaTimes(step, write) }
-        launch(Dispatchers.Default) { indexFt(step, write) }
-        launch(Dispatchers.Default) { indexFBis(step, write) }
-        launch(Dispatchers.Default) { indexFr94(step, write) }
+        //launch(Dispatchers.Default) { indexFt(step, write) }
+    //launch(Dispatchers.Default) { indexFBis(step, write) }
+      //  launch(Dispatchers.Default) { indexFr94(step, write) }
     }
 
     private fun indexLaTimes(step: Int = 1, write: Boolean = false) {
         println("Indexing LA Times documents...")
+        File("test/la.txt").printWriter().use { writer ->
+        }
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
         var totalDocs = 0   
         subfolders?.forEach { folder ->
@@ -85,8 +87,9 @@ class Indexer(
             totalDocs += docs.size
             runBlocking {
                 for ((i, doc) in docs.withIndex()) {
+                    println(i)
                     // allows documents to be skipped during indexing to speed up testing
-                    if (i % step != 0) continue
+                    //if (i % step != 0) continue
                     launch(Dispatchers.Default) {
                         val docId = findByTagAndProcess(doc, "DOCNO")
                         val headline = findByTagAndProcess(doc, "HEADLINE")
@@ -100,7 +103,7 @@ class Indexer(
                             date?.let { add(TextField("date", it, Field.Store.YES)) }
                         }
                         if (write && i < 50) {
-                            saveDocumentToFile(iDoc, "docs/test/la.txt")
+                            saveDocumentToFile(iDoc, "test/la.txt")
                         }
                         iwriter.addDocument(iDoc)
                     }
@@ -114,7 +117,7 @@ class Indexer(
     private fun indexFt(step: Int = 1, write: Boolean = false) {
         println("Indexing Financial Times documents...")
         //clears the test file of any previous docs
-        File("docs/test/ft.txt").printWriter().use {}
+        File("test/ft.txt").printWriter().use {}
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
@@ -138,7 +141,7 @@ class Indexer(
                             }
                             // writes the first fifty docs found in each file to the test document
                             if (write && i < 50) {
-                                saveDocumentToFile(iDoc, "docs/test/ft.txt")
+                                saveDocumentToFile(iDoc, "test/ft.txt")
                             }
                             iwriter.addDocument(iDoc)
                         }
@@ -169,7 +172,7 @@ class Indexer(
     private fun indexFr94(step: Int = 1, write: Boolean = false) {
         println("Indexing Federal Register 1994 documents...")
         //clears the test file of any previous docs
-        File("docs/test/fr94.txt").printWriter().use {}
+        File("test/fr94.txt").printWriter().use {}
 
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -203,7 +206,7 @@ class Indexer(
                                 processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                             }
                             if (write && i < 50) {
-                                saveDocumentToFile(iDoc, "docs/test/fr94.txt")
+                                saveDocumentToFile(iDoc, "test/fr94.txt")
                             }
                             iwriter.addDocument(iDoc)
                         }
@@ -218,7 +221,7 @@ class Indexer(
     private fun indexFBis(step: Int = 1, write: Boolean = false) {
         println("Indexing Foreign Broadcast Information Services documents...")
         //clears the test file of any previous docs
-        File("docs/test/fbsi.txt").printWriter().use {}
+        File("test/fbsi.txt").printWriter().use {}
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
@@ -241,7 +244,7 @@ class Indexer(
                                 date?.let { add(TextField("date", it, Field.Store.YES)) }
                             }
                             if (write && i < 50) {
-                                saveDocumentToFile(iDoc, "docs/test/fbsi.txt")
+                                saveDocumentToFile(iDoc, "test/fbsi.txt")
                             }
                             iwriter.addDocument(iDoc)
                         }
