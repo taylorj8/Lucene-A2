@@ -13,6 +13,8 @@ import java.io.File
 import java.util.regex.Pattern
 
 import kotlinx.coroutines.runBlocking
+import java.io.BufferedWriter
+import java.io.FileWriter
 
 class Indexer(private val analyzer: Analyzer,
             private val directory: Directory
@@ -42,7 +44,19 @@ class Indexer(private val analyzer: Analyzer,
         }
         return docs
     }
-    
+
+
+    private fun saveDocumentToFile(document: Document, filePath: String) {
+        // Use FileWriter with append mode enabled
+        BufferedWriter(FileWriter(filePath, true)).use { writer ->
+            writer.write("Document Fields:\n")
+            for (field in document.fields) {
+                writer.write("${field.name()}: ${field.stringValue()}\n")
+            }
+            writer.write("\n") // Add a newline to separate documents
+        }
+    }
+
 
     private fun findByTagAndProcess(doc: String, tag: String): String? {
         val matcher = Pattern.compile("(?<=<${tag}>)([\\s\\S]*?)(?=</${tag}>)").matcher(doc)
@@ -56,14 +70,14 @@ class Indexer(private val analyzer: Analyzer,
         return null
     }
 
-    fun indexAll(skip: Int = 1) = runBlocking {
-        launch(Dispatchers.Default) { indexLaTimes(skip) }
-        launch(Dispatchers.Default) { indexFt(skip) }
-        launch(Dispatchers.Default) { indexFBis(skip) }
-        launch(Dispatchers.Default) { indexFr94(skip) }
+    fun indexAll(skip: Int = 1, write: Boolean = false) = runBlocking {
+        launch(Dispatchers.Default) { indexLaTimes(skip, write) }
+        launch(Dispatchers.Default) { indexFt(skip, write) }
+        launch(Dispatchers.Default) { indexFBis(skip, write) }
+        launch(Dispatchers.Default) { indexFr94(skip, write) }
     }
 
-    private fun indexLaTimes(skip: Int = 1) {
+    private fun indexLaTimes(skip: Int = 1, write: Boolean = false) {
         println("Indexing LA Times documents...")
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -75,22 +89,19 @@ class Indexer(private val analyzer: Analyzer,
                     // allows documents to be skipped during indexing to speed up testing
                     if (i % skip != 0) continue
                     launch(Dispatchers.Default) {
-                        val docId = findByTagAndProcess(doc, "DOCID")
+                        val docId = findByTagAndProcess(doc, "DOCNO")
                         val headline = findByTagAndProcess(doc, "HEADLINE")
                         val text = findByTagAndProcess(doc, "TEXT")
-                        //Optional
                         val date = findByTagAndProcess(doc, "DATE")
-                        //val section = findByTagAndProcess(doc, "SECTION")
-                        //val byline = findByTagAndProcess(doc, "BYLINE")
 
                         val iDoc = Document().apply {
                             headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                             text?.let { add(TextField("text", it, Field.Store.YES)) }
                             docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                             date?.let { add(TextField("date", it, Field.Store.YES)) }
-                            //Optional
-                            //section?.let { add(StringField("section", it, Field.Store.YES)) }
-                            //byline?.let { add(StringField("byline", it, Field.Store.YES)) }
+                        }
+                        if (write && i < 50) {
+                            saveDocumentToFile(iDoc, "docs/test/la.txt")
                         }
                         iwriter.addDocument(iDoc)
                     }
@@ -100,7 +111,7 @@ class Indexer(private val analyzer: Analyzer,
         println("${totalDocs / skip} LA Times documents indexed.")
     } 
 
-    private fun indexFt(skip: Int = 1) {
+    private fun indexFt(skip: Int = 1, write: Boolean = false) {
         println("Indexing Financial Times documents...")
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -122,6 +133,10 @@ class Indexer(private val analyzer: Analyzer,
                                 date?.let { add(TextField("date", it, Field.Store.YES)) }
                                 headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                                 text?.let { add(TextField("text", it, Field.Store.YES)) }
+                            }
+                            // writes the first fifty docs found in each file to the test document
+                            if (write && i < 50) {
+                                saveDocumentToFile(iDoc, "docs/test/ft.txt")
                             }
                             iwriter.addDocument(iDoc)
                         }
@@ -149,7 +164,7 @@ class Indexer(private val analyzer: Analyzer,
         return match?.value
     }
 
-    private fun indexFr94(skip: Int = 1) {
+    private fun indexFr94(skip: Int = 1, write: Boolean = false) {
         println("Indexing Federal Register 1994 documents...")
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -162,24 +177,29 @@ class Indexer(private val analyzer: Analyzer,
                         if (i % skip != 0) continue
                         launch(Dispatchers.Default) {
                             val newDoc = removePjgTagsFromDoc(doc)
+                            // print(newdoc);
 
                             val docId = findByTagAndProcess(newDoc, "DOCNO")
                             val header = findByTagAndProcess(newDoc, "DOCTITLE")
+
                             val summary = findByTagAndProcess(newDoc, "SUMMARY")
-                            val body =  findByTagAndProcess(newDoc,"SUPPLEM")
+                            val body = findByTagAndProcess(newDoc,"SUPPLEM")
+                            val textog = findByTagAndProcess(newDoc,"TEXT")
                             val sb = StringBuilder()
-                            sb.append(summary).append(body)
+                            sb.append(summary).append(body).append(textog)
                             val text = sb.toString()
+
                             val date = findByTagAndProcess(newDoc,"DATE")
                             val processedDate = date?.let { extractDate(it) }
-                            //print("printing date");
-                            // print(processedDate+"\n");
 
                             val iDoc = Document().apply {
                                 header?.let { add(TextField("headline", it, Field.Store.YES)) }
                                 add(TextField("text", text, Field.Store.YES))
                                 docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                                 processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
+                            }
+                            if (write && i < 50) {
+                                saveDocumentToFile(iDoc, "docs/test/fr94.txt")
                             }
                             iwriter.addDocument(iDoc)
                         }
@@ -189,10 +209,9 @@ class Indexer(private val analyzer: Analyzer,
         }
 
         println("${totalDocs / skip} FR94 documents indexed.")
-
     } 
 
-    private fun indexFBis(skip: Int = 1) {
+    private fun indexFBis(skip: Int = 1, write: Boolean = false) {
         println("Indexing Foreign Broadcast Information Services documents...")
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -215,13 +234,15 @@ class Indexer(private val analyzer: Analyzer,
                                 docId?.let { add(StringField("docId", it, Field.Store.YES)) }
                                 date?.let { add(TextField("date", it, Field.Store.YES)) }
                             }
+                            if (write && i < 50) {
+                                saveDocumentToFile(iDoc, "docs/test/fbsi.txt")
+                            }
                             iwriter.addDocument(iDoc)
                         }
                     }
                 }
             }
         }
-
         println("${totalDocs / skip} Foreign Broadcast Information Services documents indexed.")
     }
     

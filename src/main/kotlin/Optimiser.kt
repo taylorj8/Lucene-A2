@@ -17,8 +17,9 @@ import kotlin.collections.ArrayList
 import kotlin.math.pow
 
 
-class GridSearch(val qi: QueryIndex) {
+class Optimiser(val qi: QueryIndex) {
     fun searchSimilarities() {
+        clearDirectory("optimisation/similarities")
         val queries = qi.processQueries()
 
         val k1s = buildSequence(0.2f, 2f, 0.2f)
@@ -31,7 +32,7 @@ class GridSearch(val qi: QueryIndex) {
             runBlocking {
                 launch(Dispatchers.Default) {
                     qi.similarity = ClassicSimilarity()
-                    searchAndStoreResults("grid_search/similarities/classic/ClassicSimilarity.txt", queries)
+                    searchAndStoreResults("optimisation/similarities/classic/ClassicSimilarity.txt", queries)
                     progress.step()
                 }
 
@@ -39,7 +40,7 @@ class GridSearch(val qi: QueryIndex) {
                     for (b in bs) {
                         launch(Dispatchers.Default) {
                             qi.similarity = BM25Similarity(k1, b)
-                            searchAndStoreResults("grid_search/similarities/bm25/k1=${k1}_b=$b.txt", queries)
+                            searchAndStoreResults("optimisation/similarities/bm25/k1=${k1}_b=$b.txt", queries)
                             progress.step()
                         }
                     }
@@ -48,7 +49,7 @@ class GridSearch(val qi: QueryIndex) {
                 for (mu in mus) {
                     launch(Dispatchers.Default) {
                         qi.similarity = LMDirichletSimilarity(mu)
-                        searchAndStoreResults("grid_search/similarities/lmd/mu=$mu.txt", queries)
+                        searchAndStoreResults("optimisation/similarities/lmd/mu=$mu.txt", queries)
                         progress.step()
                     }
                 }
@@ -56,7 +57,7 @@ class GridSearch(val qi: QueryIndex) {
                 for (lambda in lambdas) {
                     launch(Dispatchers.Default) {
                         qi.similarity = LMJelinekMercerSimilarity(lambda)
-                        searchAndStoreResults("grid_search/similarities/lmj/lambda=$lambda.txt", queries)
+                        searchAndStoreResults("optimisation/similarities/lmj/lambda=$lambda.txt", queries)
                         progress.step()
                     }
                 }
@@ -66,6 +67,7 @@ class GridSearch(val qi: QueryIndex) {
 
 
     fun searchWeights() {
+        clearDirectory("optimisation/weights")
         val weights = buildSequence(0.0f, 1f, 0.1f)
         val totalIterations = weights.size.toFloat().pow(3).toLong() * 3
         ProgressBar("Searching for optimal weights", totalIterations).use { progress ->
@@ -74,7 +76,7 @@ class GridSearch(val qi: QueryIndex) {
                     for (t in weights) {
                         for (d in weights) {
                             launch(Dispatchers.Default) {
-                                val testWeights = mapOf("headline" to h, "text" to t, "date" to d)
+                                val testWeights = mapOf("headline" to h, "date" to d, "text" to t)
                                 qi.weights = mapOf(
                                     "title" to testWeights,
                                     "desc" to testWeights,
@@ -83,17 +85,17 @@ class GridSearch(val qi: QueryIndex) {
 
                                 // test title
                                 var queries = processPartialQueries(qi.partialQueries, "title")
-                                searchAndStoreResults("grid_search/weights/title/$h-$t-$d.txt", queries)
+                                searchAndStoreResults("optimisation/weights/title/$h-$d-$t.txt", queries)
                                 progress.step()
 
                                 // test desc
                                 queries = processPartialQueries(qi.partialQueries, "desc")
-                                searchAndStoreResults("grid_search/weights/desc/$h-$t-$d.txt", queries)
+                                searchAndStoreResults("optimisation/weights/desc/$h-$d-$t.txt", queries)
                                 progress.step()
 
                                 // test narr
                                 queries = processPartialQueries(qi.partialQueries, "narr")
-                                searchAndStoreResults("grid_search/weights/narr/$h-$t-$d.txt", queries)
+                                searchAndStoreResults("optimisation/weights/narr/$h-$d-$t.txt", queries)
                                 progress.step()
                             }
                         }
@@ -104,11 +106,10 @@ class GridSearch(val qi: QueryIndex) {
     }
 
 
-    fun searchComparativeWeights() {
-        val testWeights = buildSequence(0.0f, 1f, 0.1f)
-        val titleWeights = mapOf("headline" to 0.0f, "date" to 0.2f, "text" to 0.5f)
-        val descWeights = mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.8f)
-        val narrWeights = mapOf("headline" to 0.3f, "date" to 0.6f, "text" to 0.9f)
+    fun searchBoosts() {
+        clearDirectory("optimisation/boosts")
+        val testWeights = buildSequence(0.0f, 1f, 0.2f)
+
         val totalIterations = testWeights.size.toFloat().pow(3).toLong()
         ProgressBar("Searching for optimal comparative weights", totalIterations).use { progress ->
             runBlocking {
@@ -117,25 +118,9 @@ class GridSearch(val qi: QueryIndex) {
                         for (n in testWeights) {
                             launch(Dispatchers.Default) {
                                 qi.run {
-                                    weights = mapOf(
-                                        "title" to mapOf(
-                                            "headline" to titleWeights["headline"]!! * t,
-                                            "date" to titleWeights["date"]!! * d,
-                                            "text" to titleWeights["text"]!! * n
-                                        ),
-                                        "desc" to mapOf(
-                                            "headline" to descWeights["headline"]!! * t,
-                                            "date" to descWeights["date"]!! * d,
-                                            "text" to descWeights["text"]!! * n
-                                        ),
-                                        "narr" to mapOf(
-                                            "headline" to narrWeights["headline"]!! * t,
-                                            "date" to narrWeights["date"]!! * d,
-                                            "text" to narrWeights["text"]!! * n
-                                        )
-                                    )
+                                    boosts = mapOf("title" to t, "desc" to d, "narr" to n)
                                     val queries = processQueries()
-                                    searchAndStoreResults("grid_search/weights/comp/$t-$d-$n.txt", queries)
+                                    searchAndStoreResults("optimisation/boosts/$t-$d-$n.txt", queries)
                                 }
                                 progress.step()
                             }
@@ -148,6 +133,7 @@ class GridSearch(val qi: QueryIndex) {
 
 
     fun searchAnalyzers() {
+        clearDirectory("optimisation/analyzers")
         val tokenizers = listOf("standard", "whitespace", "classic", "edgeNGram", "pathHierarchy")
         val tokenFilters = listOf("lowercase", "stop", "porterstem", "shingle", "wordDelimiter")
 
@@ -157,11 +143,11 @@ class GridSearch(val qi: QueryIndex) {
                 qi.analyzer = CustomAnalyzer.builder()
                     .withTokenizer(tokenizer)
                     .build()
-                val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("grid_search/test_index")))
+                val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
                 try {
                     ind.indexAll()
                     val queries = qi.processQueries()
-                    searchAndStoreResults("grid_search/analyzers/tokenizer/$tokenizer.txt", queries)
+                    searchAndStoreResults("optimisation/analyzers/tokenizer/$tokenizer.txt", queries)
                 } catch (e: Exception) {
                     println("Tokenizer $tokenizer caused an error: ${e.message}")
                 } finally {
@@ -175,11 +161,11 @@ class GridSearch(val qi: QueryIndex) {
                     .withTokenizer("standard")
                     .addTokenFilter(tokenFilter)
                     .build()
-                val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("grid_search/test_index")))
+                val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
                 try {
                     ind.indexAll()
                     val queries = qi.processQueries()
-                    searchAndStoreResults("grid_search/analyzers/token-filter/$tokenFilter.txt", queries)
+                    searchAndStoreResults("optimisation/analyzers/token-filter/$tokenFilter.txt", queries)
                 } catch (e: Exception) {
                     println("Token Filter $tokenFilter caused an error: ${e.message}")
                 } finally {
@@ -228,6 +214,7 @@ class GridSearch(val qi: QueryIndex) {
                     // Run the ./trec_eval command on the file
                     val process = ProcessBuilder("./trec_eval-9.0.7/trec_eval", "qrels/qrels.assignment2.part1", file.absolutePath)
                         .start()
+
                     val output = process.inputStream.bufferedReader().use(BufferedReader::readText)
 
                     // Extract the map value from the output
@@ -280,6 +267,12 @@ class GridSearch(val qi: QueryIndex) {
     }
 }
 
+private fun clearDirectory(path: String) {
+    File(path).listFiles()?.forEach {
+        if (it.isDirectory) clearDirectory(it.path)
+        else if (it.isFile) it.delete()
+    }
+}
 
 fun buildSequence(start: Float, end: Float, step: Float): List<Float> {
     return generateSequence(start) { String.format("%.1f", it + step).toFloat() }.takeWhile { it <= end }.toList()

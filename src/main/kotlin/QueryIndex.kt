@@ -8,8 +8,9 @@ import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
 import org.apache.lucene.search.*
-import org.apache.lucene.search.similarities.LMDirichletSimilarity
+import org.apache.lucene.search.similarities.BM25Similarity
 import org.apache.lucene.search.similarities.Similarity
+import java.io.BufferedReader
 
 import java.io.File
 import java.nio.file.Paths
@@ -29,14 +30,16 @@ class QueryIndex {
 
     var similarity: Similarity
     var weights: Map<String, Map<String, Float>>
+    var boosts: Map<String, Float>
     lateinit var partialQueries: List<PartialQuery>
     init {
-        this.similarity = LMDirichletSimilarity(500f)
+        this.similarity = BM25Similarity(0.4f, 1.0f)
         this.weights = mapOf(
-            "title" to mapOf("headline" to 0.0f, "date" to 0.2f, "text" to 0.5f),
-            "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.8f),
-            "narr" to mapOf("headline" to 0.3f, "date" to 0.6f, "text" to 0.9f)
+            "title" to mapOf("headline" to 0.1f, "date" to 0.2f, "text" to 0.7f),
+            "desc" to mapOf("headline" to 0.6f, "date" to 0.2f, "text" to 0.8f),
+            "narr" to mapOf("headline" to 0.2f, "date" to 0.2f, "text" to 0.8f)
         )
+        this.boosts = mapOf("title" to 1f, "desc" to 0.2f, "narr" to 0.2f)
     }
 
 
@@ -101,16 +104,19 @@ class QueryIndex {
             val booleanQuery = BooleanQuery.Builder()
 
             query.title?.let {
-                val titleQuery = MultiFieldQueryParser(fields, analyzer, weights["title"]).parse(it)
-                booleanQuery.add(titleQuery, BooleanClause.Occur.SHOULD)
+                val titleQuery = MultiFieldQueryParser(fields, analyzer,  weights["title"]).parse(it)
+                val boostedTitleQuery = BoostQuery(titleQuery, boosts["title"]!!)
+                booleanQuery.add(boostedTitleQuery, BooleanClause.Occur.SHOULD)
             }
             query.desc?.let {
                 val descQuery = MultiFieldQueryParser(fields, analyzer, weights["desc"]).parse(it)
-                booleanQuery.add(descQuery, BooleanClause.Occur.SHOULD)
+                val boostedDescQuery = BoostQuery(descQuery, boosts["desc"]!!)
+                booleanQuery.add(boostedDescQuery, BooleanClause.Occur.SHOULD)
             }
             query.narr?.let {
                 val narrQuery = MultiFieldQueryParser(fields, analyzer, weights["narr"]).parse(it)
-                booleanQuery.add(narrQuery, BooleanClause.Occur.SHOULD)
+                val boostedNarrQuery = BoostQuery(narrQuery, boosts["narr"]!!)
+                booleanQuery.add(boostedNarrQuery, BooleanClause.Occur.SHOULD)
             }
             query.num?.let {
                 processedQueries.add(QueryWithId(it, booleanQuery.build()))
@@ -121,7 +127,7 @@ class QueryIndex {
     }    
             
 
-    fun search(query: Query, isearcher : IndexSearcher ): Array<ScoreDoc> {
+    fun search(query: Query, isearcher : IndexSearcher): Array<ScoreDoc> {
         val hits = isearcher.search(query, 50).scoreDocs
 
         // Make sure we actually found something
@@ -136,7 +142,7 @@ class QueryIndex {
     fun runQueries(queries: List<QueryWithId>, ) {
         // Create file to store results, or clear it if it exists
         val simName = similarity::class.simpleName
-        val resultsFile = File("results/${simName}_results.txt")
+        val resultsFile = File("results/_output.txt")
 
         val ireader = DirectoryReader.open(directory)
         val isearcher = IndexSearcher(ireader).also { it.similarity = similarity }
@@ -172,17 +178,17 @@ class QueryIndex {
             val startTime = System.currentTimeMillis()
             runBlocking {
                 // use existing index unless -i flag is passed
-                if (args.contains("-i")) {
+                if (args.any { it.startsWith("-i") } ) {
                     println("Building index...")
                     ind = Indexer(qi.analyzer, qi.directory)
-
-                    launch(Dispatchers.Default) { ind!!.indexAll() }
+                    // if -iw flag is passed, save files to test file
+                    launch(Dispatchers.Default) { ind!!.indexAll(1, args.contains("-iw")) }
                 } else {
                     println("Using existing index.")
                 }
                 qi.importQueries()
             }
-            if (args.contains("-i")) {
+            if (args.any { it.startsWith("-i") } ) {
                 println("Indexing took ${(System.currentTimeMillis() - startTime) / 1000}s")
             }
 
@@ -191,28 +197,31 @@ class QueryIndex {
                 shutdown()
             }
 
-            // if args contains flag starting in -g, run grid search
-            if (args.any { it.startsWith("-g")}) {
-                GridSearch(qi).run {
-                    if (args.contains("-gs") || args.contains("-g")) {
+            // if args contains flag starting in -o, run optimiser
+            if (args.any { it.startsWith("-o")}) {
+                Optimiser(qi).run {
+                    if (args.contains("-os") || args.contains("-o")) {
                         searchSimilarities()
-                        runTrecEval("grid_search/similarities", listOf("classic", "bm25", "lmd", "lmj"))
+                        runTrecEval("optimisation/similarities", listOf("classic", "bm25", "lmd", "lmj"))
                     }
-                    if (args.contains("-gw") || args.contains("-g")) {
+                    if (args.contains("-ow") || args.contains("-o")) {
                         searchWeights()
-                        runTrecEval("grid_search/weights", listOf("title", "desc", "narr"))
+                        runTrecEval("optimisation/weights", listOf("title", "desc", "narr"))
                     }
-                    if (args.contains("-gc") || args.contains("-g")) {
-                        searchComparativeWeights()
-                        runTrecEval("grid_search/weights/comp")
+                    if (args.contains("-ob") || args.contains("-o")) {
+                        searchBoosts()
+                        runTrecEval("optimisation/boosts")
                     }
-                    if (args.contains("-ga") || args.contains("-g")) {
+                    if (args.contains("-oa") || args.contains("-o")) {
                         searchAnalyzers()
-                        runTrecEval("grid_search/analyzers", listOf("tokenizer", "token_filter"))
+                        runTrecEval("optimisation/analyzers", listOf("tokenizer", "token_filter"))
                     }
                 }
             } else {
                 qi.run { runQueries(processQueries()) }
+
+                val process = ProcessBuilder("./trec_eval-9.0.7/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
+                println(process.inputStream.bufferedReader().use(BufferedReader::readText))
             }
             qi.directory.close()
             exitProcess(0)
