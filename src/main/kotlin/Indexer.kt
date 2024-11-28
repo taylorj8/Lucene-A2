@@ -77,7 +77,7 @@ class Indexer(private val analyzer: Analyzer,
     }
 
     fun indexLaTimes() {
-        File("docs/test/la.txt").printWriter().use { writer ->
+        File("test/la.txt").printWriter().use { writer ->
         }
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
         var totalDocs = 0   
@@ -98,7 +98,7 @@ class Indexer(private val analyzer: Analyzer,
                     date?.let { add(TextField("date", it, Field.Store.YES)) }
                 }
                 if (i < 50) {
-                    saveDocumentToFile(iDoc, "docs/test/la.txt")
+                    saveDocumentToFile(iDoc, "test/la.txt")
                 }
                 iwriter.addDocument(iDoc)
             }
@@ -109,7 +109,7 @@ class Indexer(private val analyzer: Analyzer,
 
     fun indexFt() {
         //clears the test file of any previous docs
-        File("docs/test/ft.txt").printWriter().use { writer ->
+        File("test/ft.txt").printWriter().use { writer ->
         }
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
         var totalDocs = 0 
@@ -133,7 +133,7 @@ class Indexer(private val analyzer: Analyzer,
                 }
                 //writes the first fifty docs found in each file to the test document
                 if (i < 50) {
-                    saveDocumentToFile(iDoc, "docs/test/ft.txt")
+                    saveDocumentToFile(iDoc, "test/ft.txt")
                 }
                 iwriter.addDocument(iDoc)
             }
@@ -170,7 +170,7 @@ class Indexer(private val analyzer: Analyzer,
     fun indexFr94() {
         
         //clears the test file of any previous docs
-        File("docs/test/fr94.txt").printWriter().use { writer ->
+        File("test/fr94.txt").printWriter().use { writer ->
         }
 
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
@@ -202,7 +202,7 @@ class Indexer(private val analyzer: Analyzer,
                     processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                 }
                 if (i < 50) {
-                    saveDocumentToFile(iDoc, "docs/test/fr94.txt")
+                    saveDocumentToFile(iDoc, "test/fr94.txt")
                 }
                 iwriter.addDocument(iDoc)
             }
@@ -214,7 +214,7 @@ class Indexer(private val analyzer: Analyzer,
 
     fun indexFBis() {
         //clears the test file of any previous docs
-        File("docs/test/fbsi.txt").printWriter().use { writer ->
+        File("test/fbsi.txt").printWriter().use { writer ->
         }
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0     
@@ -234,7 +234,7 @@ class Indexer(private val analyzer: Analyzer,
                     date?.let { add(TextField("date", it, Field.Store.YES)) }
             }
             if (i < 50) {
-                saveDocumentToFile(iDoc, "docs/test/fbsi.txt")
+                saveDocumentToFile(iDoc, "test/fbsi.txt")
             }
             iwriter.addDocument(iDoc)
             }
