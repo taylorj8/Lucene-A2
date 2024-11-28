@@ -46,18 +46,6 @@ class Indexer(
         return docs
     }
 
-    fun saveDocumentToFile(document: Document, filePath: String) {
-        // Use FileWriter with append mode enabled
-        BufferedWriter(FileWriter(filePath, true)).use { writer ->
-            writer.write("Document Fields:\n")
-            for (field in document.fields) {
-                writer.write("${field.name()}: ${field.stringValue()}\n")
-            }
-            writer.write("\n") // Add a newline to separate documents
-        }
-    }
-
-
     private fun saveDocumentToFile(document: Document, filePath: String) {
         // Use FileWriter with append mode enabled
         BufferedWriter(FileWriter(filePath, true)).use { writer ->
@@ -68,7 +56,6 @@ class Indexer(
             writer.write("\n") // Add a newline to separate documents
         }
     }
-
 
     private fun findByTagAndProcess(doc: String, tag: String): String? {
         val matcher = Pattern.compile("(?<=<${tag}>)([\\s\\S]*?)(?=</${tag}>)").matcher(doc)

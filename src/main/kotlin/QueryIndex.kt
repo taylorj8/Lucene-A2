@@ -37,9 +37,11 @@ class QueryIndex {
         this.weights = mapOf(
             "title" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 1.0f),
             "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.6f),
-            "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f)
+            "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f),
+            "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f),
+            "zero" to mapOf("headline" to 0.0f, "date" to 0.0f, "text" to 0.0f)
         )
-        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f)
+        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "date" to 0.0f)
     }
 
 
@@ -73,7 +75,7 @@ class QueryIndex {
         return null
     }
 
-    fun getDates(text: String): String {
+    private fun getDates(text: String): String {
         // Regular expression to match the patterns
         val regex = Regex("""\b(17\d{2}|18\d{2}|19\d{2}|20\d{2})(s?)\b""", RegexOption.IGNORE_CASE)
 
@@ -96,7 +98,7 @@ class QueryIndex {
         return if (results.isEmpty()) "null" else results.joinToString(", ")
     }
 
-    data class PartialQuery(val num: String?, val title: String?, val desc: String?, val narr: String?, val date: String)
+    data class PartialQuery(val num: String?, val title: String?, val desc: String?, val narr: String?, val date: String?)
     fun importQueries() {
         val queries = ArrayList<PartialQuery>()
         val file = File("queries/topics")
@@ -125,10 +127,6 @@ class QueryIndex {
         for (query in this.partialQueries) {
             // Specify the fields and weights for the MultiFieldQueryParser
             val fields = arrayOf("headline", "date", "text")
-            var fieldWeightsDate = mapOf("headline" to 0.0f, "date" to 0.0f, "text" to 0.0f)
-            if (query.date != "null") {
-                fieldWeightsDate = mapOf("headline" to 0.2f, "date" to 1f, "text" to 0.2f)
-            }
             val booleanQuery = BooleanQuery.Builder()
 
             query.title?.let {
@@ -147,8 +145,8 @@ class QueryIndex {
                 booleanQuery.add(boostedNarrQuery, BooleanClause.Occur.SHOULD)
             }
             query.date?.let {
-                val dateQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDate).parse(it)
-                val boostedDateQuery = BoostQuery(dateQuery, 0.0f)
+                val dateQuery = MultiFieldQueryParser(fields, analyzer, weights["date"]).parse(it)
+                val boostedDateQuery = BoostQuery(dateQuery, boosts["date"]!!)
                 booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)
             }
             query.num?.let {
@@ -189,7 +187,7 @@ class QueryIndex {
             val queryId = queryWithId.num
             // Use IndexSearcher to retrieve documents from the index based on BooleanQuery
             val hits = search(query, isearcher)
-            println("Query $queryId searched")
+//            println("Query $queryId searched")
             // Write hits to file compatible with trec_eval
             for ((j,hit) in hits.withIndex()) {
                 val doc = isearcher.doc(hit.doc)

@@ -30,6 +30,7 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+/.idea/
 
 ### VS Code ###
 .vscode/
@@ -42,3 +43,8 @@ build/
 /cran/
 /index/
 /docs/
+/queries/
+/optimisation/
+
+/trec_eval/
+/trec_eval-9.0.7
