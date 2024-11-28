@@ -71,15 +71,14 @@ class Indexer(
 
     fun indexAll(step: Int = 1, write: Boolean = false) = runBlocking {
         launch(Dispatchers.Default) { indexLaTimes(step, write) }
-        //launch(Dispatchers.Default) { indexFt(step, write) }
-    //launch(Dispatchers.Default) { indexFBis(step, write) }
-      //  launch(Dispatchers.Default) { indexFr94(step, write) }
+        launch(Dispatchers.Default) { indexFt(step, write) }
+        launch(Dispatchers.Default) { indexFBis(step, write) }
+        launch(Dispatchers.Default) { indexFr94(step, write) }
     }
 
     private fun indexLaTimes(step: Int = 1, write: Boolean = false) {
         println("Indexing LA Times documents...")
-        File("test/la.txt").printWriter().use { writer ->
-        }
+        File("test/la.txt").printWriter().use {}
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
         var totalDocs = 0   
         subfolders?.forEach { folder ->
@@ -87,32 +86,36 @@ class Indexer(
             totalDocs += docs.size
             runBlocking {
                 for ((i, doc) in docs.withIndex()) {
-                    println(i)
-                    // allows documents to be skipped during indexing to speed up testing
-                    //if (i % step != 0) continue
-                    launch(Dispatchers.Default) {
-                        val docId = findByTagAndProcess(doc, "DOCNO")
-                        val headline = findByTagAndProcess(doc, "HEADLINE")
-                        val text = findByTagAndProcess(doc, "TEXT")
-                        val date = findByTagAndProcess(doc, "DATE")
 
-                        val iDoc = Document().apply {
-                            headline?.let { add(TextField("headline", it, Field.Store.YES)) }
-                            text?.let { add(TextField("text", it, Field.Store.YES)) }
-                            docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                            date?.let { add(TextField("date", it, Field.Store.YES)) }
-                        }
-                        if (write && i < 50) {
-                            saveDocumentToFile(iDoc, "test/la.txt")
-                        }
-                        iwriter.addDocument(iDoc)
+                    val docId = findByTagAndProcess(doc, "DOCNO")
+                    val headline = findByTagAndProcess(doc, "HEADLINE")
+                    val text = findByTagAndProcess(doc, "TEXT")
+                    val date = findByTagAndProcess(doc, "DATE")
+
+                    val iDoc = Document().apply {
+                        headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                        text?.let { add(TextField("text", it, Field.Store.YES)) }
+                        docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                        date?.let { add(TextField("date", it, Field.Store.YES)) }
                     }
+                  
+                    if (write && i < 50) {
+                        println("in the if")
+                        saveDocumentToFile(iDoc, "test/la.txt")
+                    }
+                    iwriter.addDocument(iDoc)
                 }
-            }
-            
+            }       
         }  
         println("${totalDocs / step} LA Times documents indexed.")
     } 
+    
+    fun extract_FT_Date(date : String){
+
+
+
+
+    }
 
     private fun indexFt(step: Int = 1, write: Boolean = false) {
         println("Indexing Financial Times documents...")
@@ -122,12 +125,11 @@ class Indexer(
         var totalDocs = 0
         runBlocking {
             subfolders?.forEach { folder ->
-                launch(Dispatchers.Default) {
+                
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
                         if (i % step != 0) continue
-                        launch(Dispatchers.Default) {
                             val docId = findByTagAndProcess(doc, "DOCNO")
                             val headline = findByTagAndProcess(doc, "HEADLINE")
                             val text = findByTagAndProcess(doc, "TEXT")
@@ -144,9 +146,7 @@ class Indexer(
                                 saveDocumentToFile(iDoc, "test/ft.txt")
                             }
                             iwriter.addDocument(iDoc)
-                        }
                     }
-                }
             }
         }
         println("${totalDocs / step} Financial Times documents indexed.")
@@ -178,12 +178,10 @@ class Indexer(
         var totalDocs = 0
         runBlocking {
             subfolders?.forEach { folder ->
-                launch(Dispatchers.Default) {
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
                         if (i % step != 0) continue
-                        launch(Dispatchers.Default) {
                             val newDoc = removePjgTagsFromDoc(doc)
 
                             val docId = findByTagAndProcess(newDoc, "DOCNO")
@@ -210,8 +208,6 @@ class Indexer(
                             }
                             iwriter.addDocument(iDoc)
                         }
-                    }
-                }
             }
         }
 
@@ -226,12 +222,10 @@ class Indexer(
         var totalDocs = 0
         runBlocking {
             subfolders?.forEach { folder ->
-                launch(Dispatchers.Default) {
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
                         if (i % step != 0) continue
-                        launch(Dispatchers.Default) {
                             val docId = findByTagAndProcess(doc, "DOCNO")
                             val header = findByTagAndProcess(doc, "TI")
                             val date = findByTagAndProcess(doc, "DATE1")
@@ -247,9 +241,7 @@ class Indexer(
                                 saveDocumentToFile(iDoc, "test/fbsi.txt")
                             }
                             iwriter.addDocument(iDoc)
-                        }
                     }
-                }
             }
         }
         println("${totalDocs / step} Foreign Broadcast Information Services documents indexed.")

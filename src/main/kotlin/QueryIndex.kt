@@ -252,7 +252,7 @@ class QueryIndex {
             } else {
                 qi.run { runQueries(processQueries()) }
 
-                val process = ProcessBuilder("./trec_eval-9.0.7/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
+                val process = ProcessBuilder("./trec_eval/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
                 println(process.inputStream.bufferedReader().use(BufferedReader::readText))
             }
             qi.directory.close()
