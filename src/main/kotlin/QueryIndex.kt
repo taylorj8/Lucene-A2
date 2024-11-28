@@ -33,13 +33,13 @@ class QueryIndex {
     var boosts: Map<String, Float>
     lateinit var partialQueries: List<PartialQuery>
     init {
-        this.similarity = BM25Similarity(0.4f, 1.0f)
+        this.similarity = BM25Similarity(0.6f, 0.7f)
         this.weights = mapOf(
-            "title" to mapOf("headline" to 0.1f, "date" to 0.2f, "text" to 0.7f),
-            "desc" to mapOf("headline" to 0.6f, "date" to 0.2f, "text" to 0.8f),
-            "narr" to mapOf("headline" to 0.2f, "date" to 0.2f, "text" to 0.8f)
+            "title" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 1.0f),
+            "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.6f),
+            "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f)
         )
-        this.boosts = mapOf("title" to 1f, "desc" to 0.2f, "narr" to 0.2f)
+        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f)
     }
 
 
@@ -201,23 +201,23 @@ class QueryIndex {
             if (args.any { it.startsWith("-o")}) {
                 Optimiser(qi).run {
                     if (args.contains("-os") || args.contains("-o")) {
-                        searchSimilarities()
+                        optimiseSimilarities()
                         runTrecEval("optimisation/similarities", listOf("classic", "bm25", "lmd", "lmj"))
                     }
                     if (args.contains("-ow") || args.contains("-o")) {
-                        searchWeights()
+                        optimiseWeights()
                         runTrecEval("optimisation/weights", listOf("title", "desc", "narr"))
                     }
                     if (args.contains("-ob") || args.contains("-o")) {
-                        searchBoosts()
+                        optimiseBoosts()
                         runTrecEval("optimisation/boosts")
                     }
                     if (args.contains("-ot") || args.contains("-o")) {
-                        searchTokenizers()
+                        optimiseTokenizers()
                         runTrecEval("optimisation/tokenizers")
                     }
                     if (args.contains("-otf") || args.contains("-o")) {
-                        searchTokenFilters()
+                        optimiseTokenFilters()
                         runTrecEval("optimisation/token_filters")
                     }
                 }

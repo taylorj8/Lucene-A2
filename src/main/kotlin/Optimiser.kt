@@ -18,14 +18,14 @@ import kotlin.math.pow
 
 
 class Optimiser(private val globalQi: QueryIndex) {
-    fun searchSimilarities() {
+    fun optimiseSimilarities() {
         clearDirectory("optimisation/similarities")
         val queries = globalQi.processQueries()
 
         val k1s = buildSequence(0.2f, 2f, 0.2f)
-        val bs = buildSequence(0.1f, 1f, 0.1f)
-        val mus = buildSequence(100f, 1000f, 100f)
-        val lambdas = buildSequence(0.1f, 0.9f, 0.1f)
+        val bs = buildSequence(0.1f, 1f, 0.2f)
+        val mus = buildSequence(200f, 1000f, 200f)
+        val lambdas = buildSequence(0.1f, 0.9f, 0.2f)
 
         val totalIterations = 1L + k1s.size * bs.size + mus.size + lambdas.size
         ProgressBar("Searching for optimal similarity measure", totalIterations).use { progress ->
@@ -33,7 +33,7 @@ class Optimiser(private val globalQi: QueryIndex) {
                 launch(Dispatchers.Default) {
                     QueryIndex().run {
                         similarity = ClassicSimilarity()
-                        searchAndStoreResults("optimisation/similarities/boolean/BooleanSimilarity.txt", queries)
+                        searchAndStoreResults("optimisation/similarities/classic/ClassicSimilarity.txt", queries)
                     }
                     progress.step()
                 }
@@ -74,9 +74,9 @@ class Optimiser(private val globalQi: QueryIndex) {
     }
 
 
-    fun searchWeights() {
+    fun optimiseWeights() {
         clearDirectory("optimisation/weights")
-        val weightSeq = buildSequence(0.0f, 1f, 0.1f)
+        val weightSeq = buildSequence(0.0f, 1f, 0.2f)
         val totalIterations = weightSeq.size.toFloat().pow(3).toLong() * 3
         ProgressBar("Searching for optimal weights", totalIterations).use { progress ->
             runBlocking {
@@ -116,18 +116,19 @@ class Optimiser(private val globalQi: QueryIndex) {
     }
 
 
-    fun searchBoosts() {
+    fun optimiseBoosts() {
         clearDirectory("optimisation/boosts")
         val testWeights = buildSequence(0.0f, 1f, 0.2f)
 
         val totalIterations = testWeights.size.toFloat().pow(3).toLong()
-        ProgressBar("Searching for optimal comparative weights", totalIterations).use { progress ->
+        ProgressBar("Searching for optimal boosts", totalIterations).use { progress ->
             runBlocking {
                 for (t in testWeights) {
                     for (d in testWeights) {
                         for (n in testWeights) {
                             launch(Dispatchers.Default) {
                                 QueryIndex().run {
+                                    partialQueries = globalQi.partialQueries
                                     boosts = mapOf("title" to t, "desc" to d, "narr" to n)
                                     val queries = processQueries()
                                     searchAndStoreResults("optimisation/boosts/$t-$d-$n.txt", queries)
@@ -142,11 +143,11 @@ class Optimiser(private val globalQi: QueryIndex) {
     }
 
 
-    fun searchTokenizers() {
+    fun optimiseTokenizers() {
         clearDirectory("optimisation/tokenizers")
         val tokenizers = listOf("standard", "whitespace", "classic", "edgeNGram", "pathHierarchy")
 
-        ProgressBar("Searching for optimal analyzers", tokenizers.size.toLong()).use { progress ->
+        ProgressBar("Searching for optimal tokenizer", tokenizers.size.toLong()).use { progress ->
             for (tokenizer in tokenizers) {
                 QueryIndex().run {
                     partialQueries = globalQi.partialQueries
@@ -169,11 +170,11 @@ class Optimiser(private val globalQi: QueryIndex) {
         }
     }
 
-    fun searchTokenFilters() {
+    fun optimiseTokenFilters() {
         clearDirectory("optimisation/token_filters")
         val tokenFilters = listOf("lowercase", "stop", "porterstem", "wordDelimiter")
         val totalSubsets = 1 shl tokenFilters.size  // 2^n subsets
-        ProgressBar("Searching for optimal analyzers", totalSubsets.toLong()).use { progress ->
+        ProgressBar("Searching for optimal token filters", totalSubsets.toLong()).use { progress ->
             for (i in 0 until totalSubsets) {
                 val subset = mutableListOf<String>()
                 // create subset
@@ -209,12 +210,14 @@ class Optimiser(private val globalQi: QueryIndex) {
     fun runTrecEval(basePath: String, folders: List<String> = listOf("")) {
         for (folder in folders) {
             // Create or initialize the CSV file with headers if it doesn't exist
-            val csvFile = File("$basePath/$folder/_output.csv").apply {
+            val fullPath = "$basePath/$folder/"
+            val fileName = fullPath.split("/").last()
+            val csvFile = File("$basePath/$folder/${fileName}_output.csv").apply {
                 createNewFile()
                 writeText("Filename,MAP\n") // Add headers
             }
 
-            File("$basePath/$folder").walk().filter { it.isFile && it.name != "_output.csv" }.forEach { file ->
+            File("$basePath/$folder").walk().filter { it.isFile && !it.name.contains("_output.csv") }.forEach { file ->
                 // Keeps the MAP values in descending order
                 val maps: TreeMap<Float, String> = TreeMap(Comparator.reverseOrder())
                 try {
