@@ -16,8 +16,9 @@ import kotlinx.coroutines.runBlocking
 import java.io.BufferedWriter
 import java.io.FileWriter
 
-class Indexer(private val analyzer: Analyzer,
-            private val directory: Directory
+class Indexer(
+    analyzer: Analyzer,
+    directory: Directory
 ){
     private val iwriter: IndexWriter
 
@@ -70,14 +71,14 @@ class Indexer(private val analyzer: Analyzer,
         return null
     }
 
-    fun indexAll(skip: Int = 1, write: Boolean = false) = runBlocking {
-        launch(Dispatchers.Default) { indexLaTimes(skip, write) }
-        launch(Dispatchers.Default) { indexFt(skip, write) }
-        launch(Dispatchers.Default) { indexFBis(skip, write) }
-        launch(Dispatchers.Default) { indexFr94(skip, write) }
+    fun indexAll(step: Int = 1, write: Boolean = false) = runBlocking {
+        launch(Dispatchers.Default) { indexLaTimes(step, write) }
+        launch(Dispatchers.Default) { indexFt(step, write) }
+        launch(Dispatchers.Default) { indexFBis(step, write) }
+        launch(Dispatchers.Default) { indexFr94(step, write) }
     }
 
-    private fun indexLaTimes(skip: Int = 1, write: Boolean = false) {
+    private fun indexLaTimes(step: Int = 1, write: Boolean = false) {
         println("Indexing LA Times documents...")
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -87,7 +88,7 @@ class Indexer(private val analyzer: Analyzer,
             runBlocking {
                 for ((i, doc) in docs.withIndex()) {
                     // allows documents to be skipped during indexing to speed up testing
-                    if (i % skip != 0) continue
+                    if (i % step != 0) continue
                     launch(Dispatchers.Default) {
                         val docId = findByTagAndProcess(doc, "DOCNO")
                         val headline = findByTagAndProcess(doc, "HEADLINE")
@@ -108,10 +109,10 @@ class Indexer(private val analyzer: Analyzer,
                 }
             }
         }  
-        println("${totalDocs / skip} LA Times documents indexed.")
+        println("${totalDocs / step} LA Times documents indexed.")
     } 
 
-    private fun indexFt(skip: Int = 1, write: Boolean = false) {
+    private fun indexFt(step: Int = 1, write: Boolean = false) {
         println("Indexing Financial Times documents...")
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -121,7 +122,7 @@ class Indexer(private val analyzer: Analyzer,
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
-                        if (i % skip != 0) continue
+                        if (i % step != 0) continue
                         launch(Dispatchers.Default) {
                             val docId = findByTagAndProcess(doc, "DOCNO")
                             val headline = findByTagAndProcess(doc, "HEADLINE")
@@ -144,13 +145,13 @@ class Indexer(private val analyzer: Analyzer,
                 }
             }
         }
-        println("${totalDocs / skip} Financial Times documents indexed.")
+        println("${totalDocs / step} Financial Times documents indexed.")
     }
 
     private fun removePjgTagsFromDoc(doc: String): String {
         // Regular expression to match PJG tags, supporting multiline content within each tag
         val pjgTagPattern = Regex("<!-- PJG[\\s\\S]*?-->", RegexOption.DOT_MATCHES_ALL)
-        val matches = pjgTagPattern.findAll(doc)
+//        val matches = pjgTagPattern.findAll(doc)
         return doc.replace(pjgTagPattern, "")
     }
 
@@ -164,7 +165,7 @@ class Indexer(private val analyzer: Analyzer,
         return match?.value
     }
 
-    private fun indexFr94(skip: Int = 1, write: Boolean = false) {
+    private fun indexFr94(step: Int = 1, write: Boolean = false) {
         println("Indexing Federal Register 1994 documents...")
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -174,7 +175,7 @@ class Indexer(private val analyzer: Analyzer,
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
-                        if (i % skip != 0) continue
+                        if (i % step != 0) continue
                         launch(Dispatchers.Default) {
                             val newDoc = removePjgTagsFromDoc(doc)
                             // print(newdoc);
@@ -208,10 +209,10 @@ class Indexer(private val analyzer: Analyzer,
             }
         }
 
-        println("${totalDocs / skip} FR94 documents indexed.")
+        println("${totalDocs / step} FR94 documents indexed.")
     } 
 
-    private fun indexFBis(skip: Int = 1, write: Boolean = false) {
+    private fun indexFBis(step: Int = 1, write: Boolean = false) {
         println("Indexing Foreign Broadcast Information Services documents...")
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -221,7 +222,7 @@ class Indexer(private val analyzer: Analyzer,
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
-                        if (i % skip != 0) continue
+                        if (i % step != 0) continue
                         launch(Dispatchers.Default) {
                             val docId = findByTagAndProcess(doc, "DOCNO")
                             val header = findByTagAndProcess(doc, "TI")
@@ -243,7 +244,7 @@ class Indexer(private val analyzer: Analyzer,
                 }
             }
         }
-        println("${totalDocs / skip} Foreign Broadcast Information Services documents indexed.")
+        println("${totalDocs / step} Foreign Broadcast Information Services documents indexed.")
     }
     
     fun shutdown() {

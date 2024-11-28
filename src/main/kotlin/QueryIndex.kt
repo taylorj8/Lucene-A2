@@ -68,7 +68,7 @@ class QueryIndex {
         val matcher = Pattern.compile(pattern).matcher(doc)
             
         if (matcher.find()) {
-            return matcher.group().replace(Regex("^\\s*(Number\\:|Description\\:|Narrative\\:)\\s*"), "")
+            return matcher.group().replace(Regex("^\\s*(Number:|Description:|Narrative:)\\s*"), "")
         }
         return null
     }
@@ -212,9 +212,13 @@ class QueryIndex {
                         searchBoosts()
                         runTrecEval("optimisation/boosts")
                     }
-                    if (args.contains("-oa") || args.contains("-o")) {
-                        searchAnalyzers()
-                        runTrecEval("optimisation/analyzers", listOf("tokenizer", "token_filter"))
+                    if (args.contains("-ot") || args.contains("-o")) {
+                        searchTokenizers()
+                        runTrecEval("optimisation/tokenizers")
+                    }
+                    if (args.contains("-otf") || args.contains("-o")) {
+                        searchTokenFilters()
+                        runTrecEval("optimisation/token_filters")
                     }
                 }
             } else {

@@ -17,10 +17,10 @@ import kotlin.collections.ArrayList
 import kotlin.math.pow
 
 
-class Optimiser(val qi: QueryIndex) {
+class Optimiser(private val globalQi: QueryIndex) {
     fun searchSimilarities() {
         clearDirectory("optimisation/similarities")
-        val queries = qi.processQueries()
+        val queries = globalQi.processQueries()
 
         val k1s = buildSequence(0.2f, 2f, 0.2f)
         val bs = buildSequence(0.1f, 1f, 0.1f)
@@ -31,16 +31,20 @@ class Optimiser(val qi: QueryIndex) {
         ProgressBar("Searching for optimal similarity measure", totalIterations).use { progress ->
             runBlocking {
                 launch(Dispatchers.Default) {
-                    qi.similarity = ClassicSimilarity()
-                    searchAndStoreResults("optimisation/similarities/classic/ClassicSimilarity.txt", queries)
+                    QueryIndex().run {
+                        similarity = ClassicSimilarity()
+                        searchAndStoreResults("optimisation/similarities/boolean/BooleanSimilarity.txt", queries)
+                    }
                     progress.step()
                 }
 
                 for (k1 in k1s) {
                     for (b in bs) {
                         launch(Dispatchers.Default) {
-                            qi.similarity = BM25Similarity(k1, b)
-                            searchAndStoreResults("optimisation/similarities/bm25/k1=${k1}_b=$b.txt", queries)
+                            QueryIndex().run {
+                                similarity = BM25Similarity(k1, b)
+                                searchAndStoreResults("optimisation/similarities/bm25/k1=${k1}_b=$b.txt", queries)
+                            }
                             progress.step()
                         }
                     }
@@ -48,16 +52,20 @@ class Optimiser(val qi: QueryIndex) {
 
                 for (mu in mus) {
                     launch(Dispatchers.Default) {
-                        qi.similarity = LMDirichletSimilarity(mu)
-                        searchAndStoreResults("optimisation/similarities/lmd/mu=$mu.txt", queries)
+                        QueryIndex().run {
+                            similarity = LMDirichletSimilarity(mu)
+                            searchAndStoreResults("optimisation/similarities/lmd/mu=$mu.txt", queries)
+                        }
                         progress.step()
                     }
                 }
 
                 for (lambda in lambdas) {
                     launch(Dispatchers.Default) {
-                        qi.similarity = LMJelinekMercerSimilarity(lambda)
-                        searchAndStoreResults("optimisation/similarities/lmj/lambda=$lambda.txt", queries)
+                        QueryIndex().run {
+                            similarity = LMJelinekMercerSimilarity(lambda)
+                            searchAndStoreResults("optimisation/similarities/lmj/lambda=$lambda.txt", queries)
+                        }
                         progress.step()
                     }
                 }
@@ -68,35 +76,37 @@ class Optimiser(val qi: QueryIndex) {
 
     fun searchWeights() {
         clearDirectory("optimisation/weights")
-        val weights = buildSequence(0.0f, 1f, 0.1f)
-        val totalIterations = weights.size.toFloat().pow(3).toLong() * 3
+        val weightSeq = buildSequence(0.0f, 1f, 0.1f)
+        val totalIterations = weightSeq.size.toFloat().pow(3).toLong() * 3
         ProgressBar("Searching for optimal weights", totalIterations).use { progress ->
             runBlocking {
-                for (h in weights) {
-                    for (t in weights) {
-                        for (d in weights) {
+                for (h in weightSeq) {
+                    for (t in weightSeq) {
+                        for (d in weightSeq) {
                             launch(Dispatchers.Default) {
                                 val testWeights = mapOf("headline" to h, "date" to d, "text" to t)
-                                qi.weights = mapOf(
-                                    "title" to testWeights,
-                                    "desc" to testWeights,
-                                    "narr" to testWeights
-                                )
+                                QueryIndex().run {
+                                    weights = mapOf(
+                                        "title" to testWeights,
+                                        "desc" to testWeights,
+                                        "narr" to testWeights
+                                    )
 
-                                // test title
-                                var queries = processPartialQueries(qi.partialQueries, "title")
-                                searchAndStoreResults("optimisation/weights/title/$h-$d-$t.txt", queries)
-                                progress.step()
+                                    // test title
+                                    var queries = processPartialQueries(weights, "title")
+                                    searchAndStoreResults("optimisation/weights/title/$h-$d-$t.txt", queries)
+                                    progress.step()
 
-                                // test desc
-                                queries = processPartialQueries(qi.partialQueries, "desc")
-                                searchAndStoreResults("optimisation/weights/desc/$h-$d-$t.txt", queries)
-                                progress.step()
+                                    // test desc
+                                    queries = processPartialQueries(weights, "desc")
+                                    searchAndStoreResults("optimisation/weights/desc/$h-$d-$t.txt", queries)
+                                    progress.step()
 
-                                // test narr
-                                queries = processPartialQueries(qi.partialQueries, "narr")
-                                searchAndStoreResults("optimisation/weights/narr/$h-$d-$t.txt", queries)
-                                progress.step()
+                                    // test narr
+                                    queries = processPartialQueries(weights, "narr")
+                                    searchAndStoreResults("optimisation/weights/narr/$h-$d-$t.txt", queries)
+                                    progress.step()
+                                }
                             }
                         }
                     }
@@ -117,7 +127,7 @@ class Optimiser(val qi: QueryIndex) {
                     for (d in testWeights) {
                         for (n in testWeights) {
                             launch(Dispatchers.Default) {
-                                qi.run {
+                                QueryIndex().run {
                                     boosts = mapOf("title" to t, "desc" to d, "narr" to n)
                                     val queries = processQueries()
                                     searchAndStoreResults("optimisation/boosts/$t-$d-$n.txt", queries)
@@ -132,71 +142,68 @@ class Optimiser(val qi: QueryIndex) {
     }
 
 
-    fun searchAnalyzers() {
-        clearDirectory("optimisation/analyzers")
+    fun searchTokenizers() {
+        clearDirectory("optimisation/tokenizers")
         val tokenizers = listOf("standard", "whitespace", "classic", "edgeNGram", "pathHierarchy")
-        val tokenFilters = listOf("lowercase", "stop", "porterstem", "shingle", "wordDelimiter")
 
-        val totalIterations = (tokenizers.size + tokenFilters.size).toLong()
-        ProgressBar("Searching for optimal analyzers", totalIterations).use { progress ->
+        ProgressBar("Searching for optimal analyzers", tokenizers.size.toLong()).use { progress ->
             for (tokenizer in tokenizers) {
-                qi.analyzer = CustomAnalyzer.builder()
-                    .withTokenizer(tokenizer)
-                    .build()
-                val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
-                try {
-                    ind.indexAll()
-                    val queries = qi.processQueries()
-                    searchAndStoreResults("optimisation/analyzers/tokenizer/$tokenizer.txt", queries)
-                } catch (e: Exception) {
-                    println("Tokenizer $tokenizer caused an error: ${e.message}")
-                } finally {
-                    ind.shutdown()
-                }
-                progress.step()
-            }
-
-            for (tokenFilter in tokenFilters) {
-                qi.analyzer = CustomAnalyzer.builder()
-                    .withTokenizer("standard")
-                    .addTokenFilter(tokenFilter)
-                    .build()
-                val ind = Indexer(qi.analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
-                try {
-                    ind.indexAll()
-                    val queries = qi.processQueries()
-                    searchAndStoreResults("optimisation/analyzers/token-filter/$tokenFilter.txt", queries)
-                } catch (e: Exception) {
-                    println("Token Filter $tokenFilter caused an error: ${e.message}")
-                } finally {
-                    ind.shutdown()
+                QueryIndex().run {
+                    partialQueries = globalQi.partialQueries
+                    analyzer = CustomAnalyzer.builder()
+                        .withTokenizer(tokenizer)
+                        .build()
+                    val ind = Indexer(analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
+                    try {
+                        ind.indexAll(2)
+                        val queries = processQueries()
+                        searchAndStoreResults("optimisation/tokenizers/$tokenizer.txt", queries)
+                    } catch (e: Exception) {
+                        println("Tokenizer $tokenizer caused an error: ${e.message}")
+                    } finally {
+                        ind.shutdown()
+                    }
                 }
                 progress.step()
             }
         }
     }
 
+    fun searchTokenFilters() {
+        clearDirectory("optimisation/token_filters")
+        val tokenFilters = listOf("lowercase", "stop", "porterstem", "wordDelimiter")
+        val totalSubsets = 1 shl tokenFilters.size  // 2^n subsets
+        ProgressBar("Searching for optimal analyzers", totalSubsets.toLong()).use { progress ->
+            for (i in 0 until totalSubsets) {
+                val subset = mutableListOf<String>()
+                // create subset
+                for (j in tokenFilters.indices) {
+                    if (i and (1 shl j) != 0) {
+                        subset.add(tokenFilters[j])
+                    }
+                }
+                // make analyzer with each subset
+                val analyzerBuilder = CustomAnalyzer.builder().withTokenizer("standard")
+                subset.forEach(analyzerBuilder::addTokenFilter)
+                QueryIndex().run {
+                    partialQueries = globalQi.partialQueries
+                    analyzer = analyzerBuilder.build()
 
-    private fun searchAndStoreResults(resultsFileName: String, queries: List<QueryIndex.QueryWithId>) {
-        val resultsFile = File(resultsFileName)
-        if (!resultsFile.createNewFile()) {
-            resultsFile.writeText("")  // Clear the file if it exists
-        }
-
-        val ireader = DirectoryReader.open(qi.directory)
-        val isearcher = IndexSearcher(ireader).also { it.similarity = qi.similarity }
-        for (queryWithId in queries) {
-            val hits = qi.search(queryWithId.query, isearcher)
-            for ((j, hit) in hits.withIndex()) {
-                val doc = isearcher.doc(hit.doc)
-                val docId = doc["docId"]
-
-                val simName = resultsFileName.split("/").last().split(".").first()
-                resultsFile.appendText("${queryWithId.num} Q0 $docId ${j + 1} ${hit.score} $simName\n")
-//                println("Processed: ${queryWithId.num} Q0 $docId ${j + 1} ${hit.score} $simName")
+                    val ind = Indexer(analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
+                    val filtersUsed = if (subset.isEmpty()) "none" else subset.joinToString("-")
+                    try {
+                        ind.indexAll(3)
+                        val queries = processQueries()
+                        searchAndStoreResults("optimisation/token_filters/$filtersUsed.txt", queries)
+                    } catch (e: Exception) {
+                        println("Token Filters $filtersUsed caused an error: ${e.message}")
+                    } finally {
+                        ind.shutdown()
+                    }
+                }
+                progress.step()
             }
         }
-        ireader.close()
     }
 
     fun runTrecEval(basePath: String, folders: List<String> = listOf("")) {
@@ -236,24 +243,24 @@ class Optimiser(val qi: QueryIndex) {
     }
 
 
-    private fun processPartialQueries(partialQueries: List<QueryIndex.PartialQuery>, field: String): List<QueryIndex.QueryWithId> {
+    private fun processPartialQueries(weights: Map<String, Map<String, Float>>, field: String): List<QueryIndex.QueryWithId> {
         val processedQueries = ArrayList<QueryIndex.QueryWithId>()
         val fields = arrayOf("headline", "date", "text")
-        for (partialQuery in partialQueries) {
+        for (partialQuery in globalQi.partialQueries) {
             val query = when(field) {
                 "title" -> {
                     partialQuery.title?.let {
-                        MultiFieldQueryParser(fields, qi.analyzer, qi.weights["title"]).parse(it)
+                        MultiFieldQueryParser(fields, globalQi.analyzer, weights["title"]).parse(it)
                     }
                 }
                 "desc" -> {
                     partialQuery.desc?.let {
-                        MultiFieldQueryParser(fields, qi.analyzer, qi.weights["desc"]).parse(it)
+                        MultiFieldQueryParser(fields, globalQi.analyzer, weights["desc"]).parse(it)
                     }
                 }
                 "narr" -> {
                     partialQuery.narr?.let {
-                        MultiFieldQueryParser(fields, qi.analyzer, qi.weights["narr"]).parse(it)
+                        MultiFieldQueryParser(fields, globalQi.analyzer, weights["narr"]).parse(it)
                     }
                 }
                 else -> null
@@ -265,6 +272,28 @@ class Optimiser(val qi: QueryIndex) {
         }
         return processedQueries
     }
+}
+
+private fun QueryIndex.searchAndStoreResults(resultsFileName: String, queries: List<QueryIndex.QueryWithId>) {
+    val resultsFile = File(resultsFileName)
+    if (!resultsFile.createNewFile()) {
+        resultsFile.writeText("")  // Clear the file if it exists
+    }
+
+    val ireader = DirectoryReader.open(this.directory)
+    val isearcher = IndexSearcher(ireader).also { it.similarity = this.similarity }
+    for (queryWithId in queries) {
+        val hits = this.search(queryWithId.query, isearcher)
+        for ((j, hit) in hits.withIndex()) {
+            val doc = isearcher.doc(hit.doc)
+            val docId = doc["docId"]
+
+            val simName = resultsFileName.split("/").last().split(".").first()
+            resultsFile.appendText("${queryWithId.num} Q0 $docId ${j + 1} ${hit.score} $simName\n")
+//                println("Processed: ${queryWithId.num} Q0 $docId ${j + 1} ${hit.score} $simName")
+        }
+    }
+    ireader.close()
 }
 
 private fun clearDirectory(path: String) {
