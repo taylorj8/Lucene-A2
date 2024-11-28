@@ -11,10 +11,10 @@ import org.apache.lucene.document.StringField
 
 import java.io.File
 import java.util.regex.Pattern
+import java.io.FileWriter
+import java.io.BufferedWriter
 
 import kotlinx.coroutines.runBlocking
-import java.io.BufferedWriter
-import java.io.FileWriter
 
 class Indexer(
     analyzer: Analyzer,
@@ -44,6 +44,17 @@ class Indexer(
             }
         }
         return docs
+    }
+
+    fun saveDocumentToFile(document: Document, filePath: String) {
+        // Use FileWriter with append mode enabled
+        BufferedWriter(FileWriter(filePath, true)).use { writer ->
+            writer.write("Document Fields:\n")
+            for (field in document.fields) {
+                writer.write("${field.name()}: ${field.stringValue()}\n")
+            }
+            writer.write("\n") // Add a newline to separate documents
+        }
     }
 
 
@@ -81,7 +92,7 @@ class Indexer(
     private fun indexLaTimes(step: Int = 1, write: Boolean = false) {
         println("Indexing LA Times documents...")
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
-        var totalDocs = 0
+        var totalDocs = 0   
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
@@ -108,12 +119,15 @@ class Indexer(
                     }
                 }
             }
+            
         }  
         println("${totalDocs / step} LA Times documents indexed.")
     } 
 
     private fun indexFt(step: Int = 1, write: Boolean = false) {
         println("Indexing Financial Times documents...")
+        //clears the test file of any previous docs
+        File("docs/test/ft.txt").printWriter().use {}
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
@@ -167,6 +181,9 @@ class Indexer(
 
     private fun indexFr94(step: Int = 1, write: Boolean = false) {
         println("Indexing Federal Register 1994 documents...")
+        //clears the test file of any previous docs
+        File("docs/test/fr94.txt").printWriter().use {}
+
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
@@ -178,7 +195,6 @@ class Indexer(
                         if (i % step != 0) continue
                         launch(Dispatchers.Default) {
                             val newDoc = removePjgTagsFromDoc(doc)
-                            // print(newdoc);
 
                             val docId = findByTagAndProcess(newDoc, "DOCNO")
                             val header = findByTagAndProcess(newDoc, "DOCTITLE")
@@ -210,10 +226,12 @@ class Indexer(
         }
 
         println("${totalDocs / step} FR94 documents indexed.")
-    } 
+    }
 
     private fun indexFBis(step: Int = 1, write: Boolean = false) {
         println("Indexing Foreign Broadcast Information Services documents...")
+        //clears the test file of any previous docs
+        File("docs/test/fbsi.txt").printWriter().use {}
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {

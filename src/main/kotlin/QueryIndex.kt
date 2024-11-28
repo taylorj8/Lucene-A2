@@ -54,7 +54,7 @@ class QueryIndex {
         for (char in specialChars) {
             sanitized = sanitized.replace(char, "")
         }
-    
+
         return sanitized
     }
 
@@ -73,7 +73,30 @@ class QueryIndex {
         return null
     }
 
-    data class PartialQuery(val num: String?, val title: String?, val desc: String?, val narr: String?)
+    fun getDates(text: String): String {
+        // Regular expression to match the patterns
+        val regex = Regex("""\b(17\d{2}|18\d{2}|19\d{2}|20\d{2})(s?)\b""", RegexOption.IGNORE_CASE)
+
+        val results = mutableListOf<String>()
+
+        regex.findAll(text).forEach { match ->
+            val matchedValue = match.value
+
+            // check if ends in an "s"
+            if (matchedValue.endsWith("s", ignoreCase = true)) {
+                // get the decade e,g the 90s
+                val decadeStart = matchedValue.substring(0, 4).toInt()
+                // add all years in that decade e.g 90, 91, 92, 93, 94.....
+                results.addAll((decadeStart..decadeStart + 9).map { it.toString() })
+            } else {
+                // else add the single year
+                results.add(matchedValue)
+            }
+        }
+        return if (results.isEmpty()) "null" else results.joinToString(", ")
+    }
+
+    data class PartialQuery(val num: String?, val title: String?, val desc: String?, val narr: String?, val date: String)
     fun importQueries() {
         val queries = ArrayList<PartialQuery>()
         val file = File("queries/topics")
@@ -83,12 +106,13 @@ class QueryIndex {
             while (querySeparator.find()) {
                 val rawQuery = querySeparator.group()
                 val cleanQuery = sanitizeQuery(rawQuery)
-
-                val num = findByTagAndProcessQuery(cleanQuery, "num", "title")
+                val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
                 val narr = findByTagAndProcessQuery(cleanQuery, "narr", " ")
-                queries.add(PartialQuery(num, title, desc, narr))
+                val date = getDates(cleanQuery)
+
+                queries.add(PartialQuery(num, title, desc, narr, date))
             }
         }
         println("${queries.size} queries imported.")
@@ -101,6 +125,10 @@ class QueryIndex {
         for (query in this.partialQueries) {
             // Specify the fields and weights for the MultiFieldQueryParser
             val fields = arrayOf("headline", "date", "text")
+            var fieldWeightsDate = mapOf("headline" to 0.0f, "date" to 0.0f, "text" to 0.0f)
+            if (query.date != "null") {
+                fieldWeightsDate = mapOf("headline" to 0.2f, "date" to 1f, "text" to 0.2f)
+            }
             val booleanQuery = BooleanQuery.Builder()
 
             query.title?.let {
@@ -118,6 +146,11 @@ class QueryIndex {
                 val boostedNarrQuery = BoostQuery(narrQuery, boosts["narr"]!!)
                 booleanQuery.add(boostedNarrQuery, BooleanClause.Occur.SHOULD)
             }
+            query.date?.let {
+                val dateQuery = MultiFieldQueryParser(fields, analyzer, fieldWeightsDate).parse(it)
+                val boostedDateQuery = BoostQuery(dateQuery, 0.0f)
+                booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)
+            }
             query.num?.let {
                 processedQueries.add(QueryWithId(it, booleanQuery.build()))
             }
@@ -128,7 +161,7 @@ class QueryIndex {
             
 
     fun search(query: Query, isearcher : IndexSearcher): Array<ScoreDoc> {
-        val hits = isearcher.search(query, 50).scoreDocs
+        val hits = isearcher.search(query, 1000).scoreDocs
 
         // Make sure we actually found something
         if (hits.isEmpty()) {
@@ -156,7 +189,7 @@ class QueryIndex {
             val queryId = queryWithId.num
             // Use IndexSearcher to retrieve documents from the index based on BooleanQuery
             val hits = search(query, isearcher)
-   
+            println("Query $queryId searched")
             // Write hits to file compatible with trec_eval
             for ((j,hit) in hits.withIndex()) {
                 val doc = isearcher.doc(hit.doc)
