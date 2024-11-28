@@ -38,15 +38,12 @@ class QueryIndex {
             "title" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 1.0f),
             "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.6f),
             "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f),
-            "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f),
-            "zero" to mapOf("headline" to 0.0f, "date" to 0.0f, "text" to 0.0f)
+            "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
         this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "date" to 0.0f)
     }
 
-
     data class QueryWithId(val num: String, val query: Query)
-    
     private fun sanitizeQuery(input: String): String {
         // Replace newlines and tabs with spaces
         var sanitized = input.replace("\n", " ").replace("\t", " ")
@@ -61,14 +58,13 @@ class QueryIndex {
     }
 
     private fun findByTagAndProcessQuery(doc: String, tag1: String, tag2: String): String? {
-    
         val pattern = if(tag1 == "narr"){
             "(?<=<${tag1}>)([\\s\\S]*?)$"
         } else {
             "(?<=<${tag1}>)([\\s\\S]*?)(?=<${tag2}>)"
         }
         val matcher = Pattern.compile(pattern).matcher(doc)
-            
+
         if (matcher.find()) {
             return matcher.group().replace(Regex("^\\s*(Number:|Description:|Narrative:)\\s*"), "")
         }

@@ -77,7 +77,7 @@ class Optimiser(private val globalQi: QueryIndex) {
     fun optimiseWeights() {
         clearDirectory("optimisation/weights")
         val weightSeq = buildSequence(0.0f, 1f, 0.2f)
-        val totalIterations = weightSeq.size.toFloat().pow(3).toLong() * 3
+        val totalIterations = weightSeq.size.toFloat().pow(3).toLong() * 4
         ProgressBar("Searching for optimal weights", totalIterations).use { progress ->
             runBlocking {
                 for (h in weightSeq) {
@@ -89,7 +89,8 @@ class Optimiser(private val globalQi: QueryIndex) {
                                     weights = mapOf(
                                         "title" to testWeights,
                                         "desc" to testWeights,
-                                        "narr" to testWeights
+                                        "narr" to testWeights,
+                                        "date" to testWeights
                                     )
 
                                     // test title
@@ -106,6 +107,11 @@ class Optimiser(private val globalQi: QueryIndex) {
                                     queries = processPartialQueries(weights, "narr")
                                     searchAndStoreResults("optimisation/weights/narr/$h-$d-$t.txt", queries)
                                     progress.step()
+
+                                    // test narr
+                                    queries = processPartialQueries(weights, "date")
+                                    searchAndStoreResults("optimisation/weights/date/$h-$d-$t.txt", queries)
+                                    progress.step()
                                 }
                             }
                         }
@@ -120,20 +126,22 @@ class Optimiser(private val globalQi: QueryIndex) {
         clearDirectory("optimisation/boosts")
         val testWeights = buildSequence(0.0f, 1f, 0.2f)
 
-        val totalIterations = testWeights.size.toFloat().pow(3).toLong()
+        val totalIterations = testWeights.size.toFloat().pow(4).toLong()
         ProgressBar("Searching for optimal boosts", totalIterations).use { progress ->
             runBlocking {
-                for (t in testWeights) {
-                    for (d in testWeights) {
-                        for (n in testWeights) {
-                            launch(Dispatchers.Default) {
-                                QueryIndex().run {
-                                    partialQueries = globalQi.partialQueries
-                                    boosts = mapOf("title" to t, "desc" to d, "narr" to n)
-                                    val queries = processQueries()
-                                    searchAndStoreResults("optimisation/boosts/$t-$d-$n.txt", queries)
+                for (ti in testWeights) {
+                    for (de in testWeights) {
+                        for (na in testWeights) {
+                            for (da in testWeights) {
+                                launch(Dispatchers.Default) {
+                                    QueryIndex().run {
+                                        partialQueries = globalQi.partialQueries
+                                        boosts = mapOf("title" to ti, "desc" to de, "narr" to na, "date" to da)
+                                        val queries = processQueries()
+                                        searchAndStoreResults("optimisation/boosts/$ti-$de-$na-$da.txt", queries)
+                                    }
+                                    progress.step()
                                 }
-                                progress.step()
                             }
                         }
                     }
@@ -264,6 +272,11 @@ class Optimiser(private val globalQi: QueryIndex) {
                 "narr" -> {
                     partialQuery.narr?.let {
                         MultiFieldQueryParser(fields, globalQi.analyzer, weights["narr"]).parse(it)
+                    }
+                }
+                "date" -> {
+                    partialQuery.date?.let {
+                        MultiFieldQueryParser(fields, globalQi.analyzer, weights["date"]).parse(it)
                     }
                 }
                 else -> null
