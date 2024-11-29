@@ -157,8 +157,12 @@ class QueryIndex {
             query.date?.let {
                 val dateQuery = MultiFieldQueryParser(fields, analyzer, weights["date"]).parse(it)
                 val boostedDateQuery = if (it == "null") {
+                    println(it)
+                    println(boosts["noDate"])
                     BoostQuery(dateQuery, boosts["noDate"]!!)
                 } else {
+                    println(it)
+                    println(boosts["date"])
                     BoostQuery(dateQuery, boosts["date"]!!)
                 }
                 booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)
