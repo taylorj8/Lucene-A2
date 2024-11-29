@@ -13,7 +13,7 @@ import java.io.File
 import java.util.regex.Pattern
 import java.io.FileWriter
 import java.io.BufferedWriter
-
+import java.text.SimpleDateFormat
 import kotlinx.coroutines.runBlocking
 
 class Indexer(
@@ -44,6 +44,25 @@ class Indexer(
             }
         }
         return docs
+    }
+    
+    fun normalizeDate(dateStr: String): String? {
+        val possibleFormats = listOf(
+            SimpleDateFormat("yyyyMMdd", Locale.ENGLISH),
+            SimpleDateFormat("dd MMM yy", Locale.ENGLISH),
+            SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        )
+        val targetFormat = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH) // Standard ISO format
+
+        for (format in possibleFormats) {
+            try {
+                val parsedDate = format.parse(dateStr.trim())
+                return targetFormat.format(parsedDate)
+            } catch (e: Exception) {
+
+            }
+        }
+        return null
     }
 
     private fun saveDocumentToFile(document: Document, filePath: String) {
@@ -80,7 +99,7 @@ class Indexer(
         println("Indexing LA Times documents...")
         File("test/la.txt").printWriter().use {}
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
-        var totalDocs = 0   
+        var totalDocs = 0
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
@@ -151,6 +170,7 @@ class Indexer(
         }
         println("${totalDocs / step} Financial Times documents indexed.")
     }
+
 
     private fun removePjgTagsFromDoc(doc: String): String {
         // Regular expression to match PJG tags, supporting multiline content within each tag
@@ -246,7 +266,8 @@ class Indexer(
         }
         println("${totalDocs / step} Foreign Broadcast Information Services documents indexed.")
     }
-    
+
+
     fun shutdown() {
         iwriter.close()
     }
