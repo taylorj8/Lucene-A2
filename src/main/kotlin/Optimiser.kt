@@ -23,9 +23,9 @@ class Optimiser(private val globalQi: QueryIndex) {
         val queries = globalQi.processQueries()
 
         val k1s = buildSequence(0.2f, 2f, 0.2f)
-        val bs = buildSequence(0.1f, 1f, 0.2f)
-        val mus = buildSequence(200f, 1000f, 200f)
-        val lambdas = buildSequence(0.1f, 0.9f, 0.2f)
+        val bs = buildSequence(0.1f, 1f, 0.1f)
+        val mus = buildSequence(100f, 1000f, 100f)
+        val lambdas = buildSequence(0.1f, 0.9f, 0.1f)
 
         val totalIterations = 1L + k1s.size * bs.size + mus.size + lambdas.size
         ProgressBar("Searching for optimal similarity measure", totalIterations).use { progress ->
@@ -76,7 +76,7 @@ class Optimiser(private val globalQi: QueryIndex) {
 
     fun optimiseWeights() {
         clearDirectory("optimisation/weights")
-        val weightSeq = buildSequence(0.0f, 1f, 0.2f)
+        val weightSeq = buildSequence(0.0f, 1f, 0.1f)
         val totalIterations = weightSeq.size.toFloat().pow(3).toLong() * 4
         ProgressBar("Searching for optimal weights", totalIterations).use { progress ->
             runBlocking {
@@ -122,7 +122,7 @@ class Optimiser(private val globalQi: QueryIndex) {
     }
 
 
-    fun optimiseBoosts() {
+    fun optimiseBoosts(weights: Map<String, Map<String, Float>>? = null) {
         clearDirectory("optimisation/boosts")
         val testWeights = buildSequence(0.0f, 1f, 0.2f)
 
@@ -135,6 +135,9 @@ class Optimiser(private val globalQi: QueryIndex) {
                             for (da in testWeights) {
                                 launch(Dispatchers.Default) {
                                     QueryIndex().run {
+                                        weights?.let {
+                                            this.weights = it
+                                        }
                                         partialQueries = globalQi.partialQueries
                                         boosts = mapOf("title" to ti, "desc" to de, "narr" to na, "date" to da)
                                         val queries = processQueries()
@@ -153,17 +156,18 @@ class Optimiser(private val globalQi: QueryIndex) {
 
     fun optimiseTokenizers() {
         clearDirectory("optimisation/tokenizers")
-        val tokenizers = listOf("standard", "whitespace", "classic", "edgeNGram", "pathHierarchy")
+        val tokenizers = listOf("standard", "whitespace", "classic", "wikipedia")
 
         ProgressBar("Searching for optimal tokenizer", tokenizers.size.toLong()).use { progress ->
             for (tokenizer in tokenizers) {
                 QueryIndex().run {
-                    partialQueries = globalQi.partialQueries
-                    analyzer = CustomAnalyzer.builder()
-                        .withTokenizer(tokenizer)
-                        .build()
-                    val ind = Indexer(analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
+                    lateinit var ind: Indexer
                     try {
+                        partialQueries = globalQi.partialQueries
+                        analyzer = CustomAnalyzer.builder()
+                            .withTokenizer(tokenizer)
+                            .build()
+                        ind = Indexer(analyzer, FSDirectory.open(Paths.get("optimisation/test_index")))
                         ind.indexAll(2)
                         val queries = processQueries()
                         searchAndStoreResults("optimisation/tokenizers/$tokenizer.txt", queries)
@@ -180,7 +184,7 @@ class Optimiser(private val globalQi: QueryIndex) {
 
     fun optimiseTokenFilters() {
         clearDirectory("optimisation/token_filters")
-        val tokenFilters = listOf("lowercase", "stop", "porterstem", "wordDelimiter")
+        val tokenFilters = listOf("lowercase", "stop", "porterstem", "apostrophe", "elision", "asciifolding")
         val totalSubsets = 1 shl tokenFilters.size  // 2^n subsets
         ProgressBar("Searching for optimal token filters", totalSubsets.toLong()).use { progress ->
             for (i in 0 until totalSubsets) {
@@ -217,17 +221,20 @@ class Optimiser(private val globalQi: QueryIndex) {
 
     fun runTrecEval(basePath: String, folders: List<String> = listOf("")) {
         for (folder in folders) {
+            val pathName = if (folder.isEmpty()) {
+                "$basePath/${basePath.split("/").last()}_output.csv"
+            } else {
+                "$basePath/$folder/${folder}_output.csv"
+            }
             // Create or initialize the CSV file with headers if it doesn't exist
-            val fullPath = "$basePath/$folder/"
-            val fileName = fullPath.split("/").last()
-            val csvFile = File("$basePath/$folder/${fileName}_output.csv").apply {
+            val csvFile = File(pathName).apply {
                 createNewFile()
                 writeText("Filename,MAP\n") // Add headers
             }
 
+            val maps: TreeMap<Float, List<String>> = TreeMap(Comparator.reverseOrder())
             File("$basePath/$folder").walk().filter { it.isFile && !it.name.contains("_output.csv") }.forEach { file ->
                 // Keeps the MAP values in descending order
-                val maps: TreeMap<Float, String> = TreeMap(Comparator.reverseOrder())
                 try {
                     // Run the ./trec_eval command on the file
                     val process = ProcessBuilder("./trec_eval-9.0.7/trec_eval", "qrels/qrels.assignment2.part1", file.absolutePath)
@@ -239,7 +246,7 @@ class Optimiser(private val globalQi: QueryIndex) {
                     val mapLine = output.lines().find { it.startsWith("map") }
                     if (mapLine != null) {
                         val mapValue = mapLine.split("all")[1].trim().toFloat()
-                        maps[mapValue] = file.name
+                        maps[mapValue] = if (maps.contains(mapValue)) maps[mapValue]!! + file.name else listOf(file.name)
                     } else {
                         println("No MAP value found for ${file.name}")
                     }
@@ -247,7 +254,9 @@ class Optimiser(private val globalQi: QueryIndex) {
                 } catch (e: Exception) {
                     println("Error processing file ${file.name}: ${e.message}")
                 }
-                maps.forEach { (map, filename) -> csvFile.appendText("$filename,$map\n") }
+            }
+            for (map in maps) {
+                map.value.forEach { filename -> csvFile.appendText("$filename,${map.key}\n") }
             }
             println("Results saved to ${csvFile.path}")
         }

@@ -15,7 +15,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.nio.file.Paths
 import java.util.regex.Pattern
-import kotlin.system.exitProcess
 
 
 class QueryIndex {
@@ -26,6 +25,7 @@ class QueryIndex {
         .addTokenFilter("lowercase")
         .addTokenFilter("stop")
         .addTokenFilter("porterstem")
+        .addTokenFilter("asciifolding")
         .build()
 
     var similarity: Similarity
@@ -35,12 +35,12 @@ class QueryIndex {
     init {
         this.similarity = BM25Similarity(0.6f, 0.7f)
         this.weights = mapOf(
-            "title" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 1.0f),
-            "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.6f),
-            "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f),
+            "title" to mapOf("headline" to 0.1f, "date" to 0.2f, "text" to 0.9f),
+            "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.7f),
+            "narr" to mapOf("headline" to 0.2f, "date" to 0.8f, "text" to 0.7f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "noDate" to 0.0f, "date" to 0.4f)
+        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f,  "noDate" to 0.0f, "date" to 0.4f)// date was 1
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -69,6 +69,14 @@ class QueryIndex {
             return matcher.group().replace(Regex("^\\s*(Number:|Description:|Narrative:)\\s*"), "")
         }
         return null
+    }
+
+    private fun processNarr(narr: String): String {
+        // split the narrative into sentences
+        val sentences = narr.split(Regex("(?<=[.!?])\\s+"))
+        // keep sentences unless they contain "not relevant"
+        val relevantSentences = sentences.filter { !it.contains("not relevant", ignoreCase = true) }
+        return relevantSentences.joinToString(" ")
     }
 
     private fun getDates(text: String): String {
@@ -121,7 +129,10 @@ class QueryIndex {
                 val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
-                val narr = findByTagAndProcessQuery(cleanQuery, "narr", " ")
+                var narr = findByTagAndProcessQuery(cleanQuery, "narr", " ")
+//                println("Before: $narr")
+//                narr = narr?.let { processNarr(it) }
+//                println("After: $narr")
                 val date = getDates(cleanQuery)
 
                 queries.add(PartialQuery(num, title, desc, narr, date))
@@ -298,29 +309,29 @@ class QueryIndex {
                     shutdown()
                 }
 
-                // if args contains flag starting in -o, run optimiser
-                if (args.any { it.startsWith("-o")}) {
-                    Optimiser(qi).run {
-                        if (args.contains("-os") || args.contains("-o")) {
-                            optimiseSimilarities()
-                            runTrecEval("optimisation/similarities", listOf("classic", "bm25", "lmd", "lmj"))
-                        }
-                        if (args.contains("-ow") || args.contains("-o")) {
-                            optimiseWeights()
-                            runTrecEval("optimisation/weights", listOf("title", "desc", "narr"))
-                        }
-                        if (args.contains("-ob") || args.contains("-o")) {
-                            optimiseBoosts()
-                            runTrecEval("optimisation/boosts")
-                        }
-                        if (args.contains("-ot") || args.contains("-o")) {
-                            optimiseTokenizers()
-                            runTrecEval("optimisation/tokenizers")
-                        }
-                        if (args.contains("-otf") || args.contains("-o")) {
-                            optimiseTokenFilters()
-                            runTrecEval("optimisation/token_filters")
-                        }
+
+            // if args contains flag starting in -o, run optimiser
+            if (args.any { it.startsWith("-o")}) {
+                Optimiser(qi).run {
+                    if (args.contains("-os") || args.contains("-o")) {
+                        optimiseSimilarities()
+                        runTrecEval("optimisation/similarities", listOf("classic", "bm25", "lmd", "lmj"))
+                    }
+                    if (args.contains("-ow") || args.contains("-o")) {
+                        optimiseWeights()
+                        runTrecEval("optimisation/weights", listOf("title", "desc", "narr", "date"))
+                    }
+                    if (args.contains("-ob") || args.contains("-o")) {
+                        optimiseBoosts()
+                        runTrecEval("optimisation/boosts")
+                    }
+                    if (args.contains("-ot") || args.contains("-o")) {
+                        optimiseTokenizers()
+                        runTrecEval("optimisation/tokenizers")
+                    }
+                    if (args.contains("-otf") || args.contains("-o")) {
+                        optimiseTokenFilters()
+                        runTrecEval("optimisation/token_filters")
                     }
                 }else{
                     qi.run { runQueries(processQueries()) }
@@ -328,17 +339,12 @@ class QueryIndex {
                     val process = ProcessBuilder("./trec_eval/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
                     println(process.inputStream.bufferedReader().use(BufferedReader::readText))
                 }
-                // if args contains flag starting in -s, use synonym query expansion
                 
-
-                /*
-                println("working on query expansion using LLM")
-    )
-                */
                 qi.directory.close()
                 exitProcess(0)
     
             }
+
     }
 }
 }
