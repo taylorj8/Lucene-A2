@@ -114,7 +114,7 @@ class Indexer(
     private fun indexFt(step: Int = 1, write: Boolean = false) {
         println("Indexing Financial Times documents...")
         //clears the test file of any previous docs
-        File("docs/test/ft.txt").printWriter().use {}
+//        File("docs/test/ft.txt").printWriter().use {}
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
@@ -169,7 +169,7 @@ class Indexer(
     private fun indexFr94(step: Int = 1, write: Boolean = false) {
         println("Indexing Federal Register 1994 documents...")
         //clears the test file of any previous docs
-        File("docs/test/fr94.txt").printWriter().use {}
+//        File("docs/test/fr94.txt").printWriter().use {}
 
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
@@ -218,7 +218,7 @@ class Indexer(
     private fun indexFBis(step: Int = 1, write: Boolean = false) {
         println("Indexing Foreign Broadcast Information Services documents...")
         //clears the test file of any previous docs
-        File("docs/test/fbsi.txt").printWriter().use {}
+//        File("docs/test/fbsi.txt").printWriter().use {}
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {

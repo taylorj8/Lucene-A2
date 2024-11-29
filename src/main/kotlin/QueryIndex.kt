@@ -15,7 +15,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.nio.file.Paths
 import java.util.regex.Pattern
-import kotlin.system.exitProcess
 
 
 class QueryIndex {
@@ -40,7 +39,7 @@ class QueryIndex {
             "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "date" to 0.0f)
+        this.boosts = mapOf("title" to 1f, "desc" to 0.2f, "narr" to 0.2f, "date" to 0.6f)
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -233,7 +232,7 @@ class QueryIndex {
                     }
                     if (args.contains("-ow") || args.contains("-o")) {
                         optimiseWeights()
-                        runTrecEval("optimisation/weights", listOf("title", "desc", "narr"))
+                        runTrecEval("optimisation/weights", listOf("title", "desc", "narr", "date"))
                     }
                     if (args.contains("-ob") || args.contains("-o")) {
                         optimiseBoosts()
@@ -255,7 +254,6 @@ class QueryIndex {
                 println(process.inputStream.bufferedReader().use(BufferedReader::readText))
             }
             qi.directory.close()
-            exitProcess(0)
         }
     }
 }
