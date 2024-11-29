@@ -40,7 +40,7 @@ class QueryIndex {
             "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "noDate" to 0.0f, "date" to 0.2f)
+        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "noDate" to 0.0f, "date" to 0.4f)
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -157,12 +157,8 @@ class QueryIndex {
             query.date?.let {
                 val dateQuery = MultiFieldQueryParser(fields, analyzer, weights["date"]).parse(it)
                 val boostedDateQuery = if (it == "null") {
-                    println(it)
-                    println(boosts["noDate"])
                     BoostQuery(dateQuery, boosts["noDate"]!!)
                 } else {
-                    println(it)
-                    println(boosts["date"])
                     BoostQuery(dateQuery, boosts["date"]!!)
                 }
                 booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)

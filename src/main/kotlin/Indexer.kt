@@ -46,26 +46,6 @@ class Indexer(
         return docs
     }
     
-    /* 
-    fun normalizeDate(dateStr: String): String? {
-        val possibleFormats = listOf(
-            SimpleDateFormat("yyyyMMdd", Locale.ENGLISH),
-            SimpleDateFormat("dd MMM yy", Locale.ENGLISH),
-            SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
-        )
-        val targetFormat = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH) // Standard ISO format
-
-        for (format in possibleFormats) {
-            try {
-                val parsedDate = format.parse(dateStr.trim())
-                return targetFormat.format(parsedDate)
-            } catch (e: Exception) {
-
-            }
-        }
-        return null
-    }*/
-
     private fun saveDocumentToFile(document: Document, filePath: String) {
         // Use FileWriter with append mode enabled
         BufferedWriter(FileWriter(filePath, true)).use { writer ->
@@ -95,6 +75,20 @@ class Indexer(
         launch(Dispatchers.Default) { indexFBis(step, write) }
         launch(Dispatchers.Default) { indexFr94(step, write) }
     }
+    
+    //as queries only contain years and no months, we extract the year only from each doc date field
+    fun extractYear(date: String): String? {
+        //  match 4 digits starting with '1'
+        val regex = """\b1\d{3}\b""".toRegex()
+        val match = regex.find(date)
+    
+        // if match is found return  otherwise null
+        return match?.value
+    }
+
+
+
+
 
     private fun indexLaTimes(step: Int = 1, write: Boolean = false) {
         println("Indexing LA Times documents...")
@@ -111,12 +105,15 @@ class Indexer(
                     val headline = findByTagAndProcess(doc, "HEADLINE")
                     val text = findByTagAndProcess(doc, "TEXT")
                     val date = findByTagAndProcess(doc, "DATE")
+                    val processedDate = date?.let {
+                        extractYear(it) 
+                    } ?: "null" 
 
                     val iDoc = Document().apply {
                         headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                         text?.let { add(TextField("text", it, Field.Store.YES)) }
                         docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                        date?.let { add(TextField("date", it, Field.Store.YES)) }
+                        processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                     }
                   
                     if (write && i < 50) {
@@ -129,11 +126,11 @@ class Indexer(
         println("${totalDocs / step} LA Times documents indexed.")
     } 
     
-    fun extract_FT_Date(date : String){
-
-
-
-
+    //extract year from FT date 
+    fun extractFTYear(date: String): String {
+        val yearPrefix = date.substring(0, 2)
+        val fullYear = "19$yearPrefix"
+        return fullYear
     }
 
     private fun indexFt(step: Int = 1, write: Boolean = false) {
@@ -153,10 +150,13 @@ class Indexer(
                             val headline = findByTagAndProcess(doc, "HEADLINE")
                             val text = findByTagAndProcess(doc, "TEXT")
                             val date = findByTagAndProcess(doc, "DATE")
+                            val processedDate = date?.let {
+                                extractFTYear(it) 
+                            } ?: "null" 
 
                             val iDoc = Document().apply {
                                 docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                                date?.let { add(TextField("date", it, Field.Store.YES)) }
+                                processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                                 headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                                 text?.let { add(TextField("text", it, Field.Store.YES)) }
                             }
@@ -179,15 +179,7 @@ class Indexer(
         return doc.replace(pjgTagPattern, "")
     }
 
-    private fun extractDate(text: String): String? {
-        // Regular expression to match a date in the format "Month Day, Year"
-        val datePattern = Regex("\\b(January|February|March|April|May|June|July|August|September|October|November|December) \\d{1,2}, \\d{4}\\b")
 
-        // Find the first match of the date pattern in the text
-        val match = datePattern.find(text)
-
-        return match?.value
-    }
 
     private fun indexFr94(step: Int = 1, write: Boolean = false) {
         println("Indexing Federal Register 1994 documents...")
@@ -215,7 +207,9 @@ class Indexer(
                             val text = sb.toString()
 
                             val date = findByTagAndProcess(newDoc,"DATE")
-                            val processedDate = date?.let { extractDate(it) }
+                            val processedDate = date?.let {
+                                extractYear(it) 
+                            } ?: "null" 
 
                             val iDoc = Document().apply {
                                 header?.let { add(TextField("headline", it, Field.Store.YES)) }
@@ -249,13 +243,16 @@ class Indexer(
                             val docId = findByTagAndProcess(doc, "DOCNO")
                             val header = findByTagAndProcess(doc, "TI")
                             val date = findByTagAndProcess(doc, "DATE1")
+                            val processedDate = date?.let {
+                                extractYear(it) 
+                            } ?: "null" 
                             val text = findByTagAndProcess(doc, "TEXT")
 
                             val iDoc = Document().apply {
                                 header?.let { add(TextField("headline", it, Field.Store.YES)) }
                                 text?.let { add(TextField("text", it, Field.Store.YES)) }
                                 docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                                date?.let { add(TextField("date", it, Field.Store.YES)) }
+                                processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                             }
                             if (write && i < 50) {
                                 saveDocumentToFile(iDoc, "test/fbsi.txt")
