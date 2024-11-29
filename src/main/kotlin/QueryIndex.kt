@@ -40,7 +40,7 @@ class QueryIndex {
             "narr" to mapOf("headline" to 0.2f, "date" to 0.8f, "text" to 0.7f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f,  "noDate" to 0.0f, "date" to 0.4f)// date was 1
+        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f,  "noDate" to 0.0f, "date" to 1.8f)// date was 1
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -333,6 +333,7 @@ class QueryIndex {
                         optimiseTokenFilters()
                         runTrecEval("optimisation/token_filters")
                     }
+                }
                 }else{
                     qi.run { runQueries(processQueries()) }
 
@@ -341,7 +342,6 @@ class QueryIndex {
                 }
                 
                 qi.directory.close()
-                exitProcess(0)
     
             }
 
