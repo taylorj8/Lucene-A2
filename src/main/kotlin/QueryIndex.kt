@@ -40,7 +40,7 @@ class QueryIndex {
             "narr" to mapOf("headline" to 0.2f, "date" to 0.8f, "text" to 0.7f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f,  "noDate" to 0.0f, "date" to 0.4f)// date was 1
+        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f,  "noDate" to 0.0f, "date" to 2.0f)// date was 1
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -125,14 +125,10 @@ class QueryIndex {
                 }
                 
                
-                //  print(cleanQuery);
                 val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
                 var narr = findByTagAndProcessQuery(cleanQuery, "narr", " ")
-//                println("Before: $narr")
-//                narr = narr?.let { processNarr(it) }
-//                println("After: $narr")
                 val date = getDates(cleanQuery)
 
                 queries.add(PartialQuery(num, title, desc, narr, date))
@@ -255,17 +251,11 @@ class QueryIndex {
 
     fun expandQueryWithPrologSynonyms(query: String, synonymMap: Map<String, List<String>>): String {
         val words = query.split("\\s+".toRegex())
-       // println(words);
         val expandedWords = words.flatMap { word ->
-          // println(word);
-           // println(getSynonymsFromMap(word, synonymMap))
             listOf(word) + getSynonymsFromMap(word, synonymMap)
-
         }
-       // println(expandedWords);
         return expandedWords.joinToString(" ")
     }
-
 
 
     companion object {
@@ -333,18 +323,15 @@ class QueryIndex {
                         optimiseTokenFilters()
                         runTrecEval("optimisation/token_filters")
                     }
+                    }
                 }else{
                     qi.run { runQueries(processQueries()) }
-
                     val process = ProcessBuilder("./trec_eval/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
                     println(process.inputStream.bufferedReader().use(BufferedReader::readText))
-                }
-                
+                } 
                 qi.directory.close()
-                exitProcess(0)
-    
             }
 
     }
-}
+    }
 }
