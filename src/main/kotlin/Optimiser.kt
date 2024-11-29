@@ -232,7 +232,7 @@ class Optimiser(private val globalQi: QueryIndex) {
                 writeText("Filename,MAP\n") // Add headers
             }
 
-            val maps: TreeMap<Float, String> = TreeMap(Comparator.reverseOrder())
+            val maps: TreeMap<Float, List<String>> = TreeMap(Comparator.reverseOrder())
             File("$basePath/$folder").walk().filter { it.isFile && !it.name.contains("_output.csv") }.forEach { file ->
                 // Keeps the MAP values in descending order
                 try {
@@ -246,7 +246,7 @@ class Optimiser(private val globalQi: QueryIndex) {
                     val mapLine = output.lines().find { it.startsWith("map") }
                     if (mapLine != null) {
                         val mapValue = mapLine.split("all")[1].trim().toFloat()
-                        maps[mapValue] = file.name
+                        maps[mapValue] = if (maps.contains(mapValue)) maps[mapValue]!! + file.name else listOf(file.name)
                     } else {
                         println("No MAP value found for ${file.name}")
                     }
@@ -255,7 +255,9 @@ class Optimiser(private val globalQi: QueryIndex) {
                     println("Error processing file ${file.name}: ${e.message}")
                 }
             }
-            maps.forEach { (map, filename) -> csvFile.appendText("$filename,$map\n") }
+            for (map in maps) {
+                map.value.forEach { filename -> csvFile.appendText("$filename,${map.key}\n") }
+            }
             println("Results saved to ${csvFile.path}")
         }
     }

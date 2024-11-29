@@ -25,6 +25,7 @@ class QueryIndex {
         .addTokenFilter("lowercase")
         .addTokenFilter("stop")
         .addTokenFilter("porterstem")
+        .addTokenFilter("asciifolding")
         .build()
 
     var similarity: Similarity
@@ -34,12 +35,12 @@ class QueryIndex {
     init {
         this.similarity = BM25Similarity(0.6f, 0.7f)
         this.weights = mapOf(
-            "title" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 1.0f),
-            "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.6f),
-            "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f),
+            "title" to mapOf("headline" to 0.1f, "date" to 0.2f, "text" to 0.9f),
+            "desc" to mapOf("headline" to 0.2f, "date" to 0.0f, "text" to 0.7f),
+            "narr" to mapOf("headline" to 0.2f, "date" to 0.8f, "text" to 0.7f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 1f, "desc" to 0.2f, "narr" to 0.2f, "date" to 0.6f)
+        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f, "date" to 1.0f)
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -68,6 +69,14 @@ class QueryIndex {
             return matcher.group().replace(Regex("^\\s*(Number:|Description:|Narrative:)\\s*"), "")
         }
         return null
+    }
+
+    private fun processNarr(narr: String): String {
+        // split the narrative into sentences
+        val sentences = narr.split(Regex("(?<=[.!?])\\s+"))
+        // keep sentences unless they contain "not relevant"
+        val relevantSentences = sentences.filter { !it.contains("not relevant", ignoreCase = true) }
+        return relevantSentences.joinToString(" ")
     }
 
     private fun getDates(text: String): String {
@@ -106,7 +115,10 @@ class QueryIndex {
                 val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
-                val narr = findByTagAndProcessQuery(cleanQuery, "narr", " ")
+                var narr = findByTagAndProcessQuery(cleanQuery, "narr", " ")
+//                println("Before: $narr")
+//                narr = narr?.let { processNarr(it) }
+//                println("After: $narr")
                 val date = getDates(cleanQuery)
 
                 queries.add(PartialQuery(num, title, desc, narr, date))
