@@ -1,0 +1,150 @@
+Query 1:
+: 401 foreign minorities, germany : what language and cultural differences impede the integration of foreign minorities in germany? : a relevant document will focus on the causes of the lack of integration in a significant way; that is, the mere mention of immigration difficulties is not relevant. documents that discuss immigration problems unrelated to germany are also not relevant.
+
+Query 2:
+: 402 behavioral genetics : what is happening in the field of behavioral genetics, the study of the relative influence of genetic and environmental factors on an individual's behavior or personality? : documents describing genetic or environmental factors relating to understanding and preventing substance abuse and addictions are relevant. documents pertaining to attention deficit disorders tied in with genetics are also relevant, as are genetic disorders affecting hearing or muscles. the genome project is relevant when tied in with behavior disorders (i.e., mood disorders, alzheimer's disease).
+
+Query 3:
+: 403 osteoporosis : find information on the effects of the dietary intakes of potassium, magnesium and fruits and vegetables as determinants of bone mineral density in elderly men and women thus preventing osteoporosis (bone decay). : a relevant document may include one or more of the dietary intakes in the prevention of osteoporosis. any discussion of the disturbance of nutrition and mineral metabolism that results in a decrease in bone mass is also relevant.
+
+Query 4:
+: 404 ireland, peace talks : how often were the peace talks in ireland delayed or disrupted as a result of acts of violence? : any interruptions to the peace process not directly attributable to acts of violence are not relevant.
+
+Query 5:
+: 405 cosmic events : what unexpected or unexplained cosmic events or celestial phenomena, such as radiation and supernova outbursts or new comets, have been detected? : new theories or new interpretations concerning known celestial objects made as a result of new technology are not relevant.
+
+Query 6:
+: 406 parkinson's disease : what is being done to treat the symptoms of parkinson's disease and keep the patient functional as long as possible? : a relevant document identifies a drug or treatment program utilized in patient care and provides an indication of success or failure.
+
+Query 7:
+: 407 poaching, wildlife preserves : what is the impact of poaching on the world's various wildlife preserves? : a relevant document must discuss poaching in wildlife preserves, not in the wild itself. also deemed relevant is evidence of preventive measures being taken by local authorities.
+
+Query 8:
+: 408 tropical storms : what tropical storms (hurricanes and typhoons) have caused significant property damage and loss of life? : the date of the storm, the area affected, and the extent of damage/casualties are all of interest. documents that describe the damage caused by a tropical storm as "slight", "limited", or "small" are not relevant.
+
+Query 9:
+: 409 legal, pan am, 103 : what legal actions have resulted from the destruction of pan am flight 103 over lockerbie, scotland, on december 21, 1988? : documents describing any charges, claims, or fines presented to or imposed by any court or tribunal are relevant, but documents that discuss charges made in diplomatic jousting are not relevant.
+
+Query 10:
+: 410 schengen agreement : who is involved in the schengen agreement to eliminate border controls in western europe and what do they hope to accomplish? : relevant documents will contain any information about the actions of signatories of the schengen agreement such as: measures to eliminate border controls (removal of traffic obstacles, lifting of traffic restrictions); implementation of the information system data bank that contains unified visa issuance procedures; or strengthening of border controls at the external borders of the treaty area in exchange for free movement at the internal borders. discussions of border crossovers for business purposes are not relevant.
+
+Query 11:
+: 411 salvaging, shipwreck, treasure : find information on shipwreck salvaging: the recovery or attempted recovery of treasure from sunken ships. : a relevant document will provide information on the actual locating and recovery of treasure; on the technology which makes possible the discovery, location and investigation of wreckages which contain or are suspected of containing treasure; or on the disposition of the recovered treasure.
+
+Query 12:
+: 412 airport security : what security measures are in effect or are proposed to go into effect in airports? : a relevant document could identify a specific airport and describe the security measures already in effect or proposed for use at that airport. relevant items could also describe a failure of security that was cited as a contributing cause of a tragedy which came to pass or which was later averted. comparisons between and among airports based on the effectiveness of the security of each are also relevant.
+
+Query 13:
+: 413 steel production : what are new methods of producing steel? : relevant documents will discuss the processes adapted by entrepreneurs who have organized so-called "minimills" and are producing steel by methods which differ from the old blast furnace method of production. documents that identify the new companies, the problems they have have encountered, and/or their successes or failures in the national and international markets are also relevant.
+
+Query 14:
+: 414 cuba, sugar, exports : how much sugar does cuba export and which countries import it? : a relevant document will provide information regarding cuba's sugar trade. sugar production statistics are not relevant unless exports are mentioned explicitly.
+
+Query 15:
+: 415 drugs, golden triangle : what is known about drug trafficking in the "golden triangle", the area where burma, thailand and laos meet? : a relevant document will discuss drug trafficking in the golden triangle, including organizations that produce or distribute the drugs; international efforts to combat the traffic; or the quantities of drugs produced in the area.
+
+Query 16:
+: 416 three gorges project : what is the status of the three gorges project? : a relevant document will provide the projected date of completion of the project, its estimated total cost, or the estimated electrical output of the the finished project. discussions of the social, political, or ecological impact of the project are not relevant.
+
+Query 17:
+: 417 creativity : find ways of measuring creativity. : relevant items include definitions of creativity, descriptions of characteristics associated with creativity, and factors linked to creativity.
+
+Query 18:
+: 418 quilts, income : in what ways have quilts been used to generate income? : documents mentioning quilting books, quilting classes, quilted objects, and museum exhibits of quilts are all relevant. documents that discuss aids quilts are irrelevant, unless there is specific mention that the quilts are being used for fundraising.
+
+Query 19:
+: 419 recycle, automobile tires : what new uses have been developed for old automobile tires as a means of tire recycling? : a relevant document must show advantageous uses of recycled tires, such as: destructive distillation of scrap rubber for valuable chemicals, reef building for fish habitats, filler or binder in asphalt roadway mixes, and burning in a controlled environment for heat generation.
+
+Query 20:
+: 420 carbon monoxide poisoning : how widespread is carbon monoxide poisoning on a global scale? : relevant documents will contain data on what carbon monoxide poisoning is, symptoms, causes, and/or prevention. advertisements for carbon monoxide protection products or services are not relevant. discussions of auto emissions and air pollution are not relevant even though they can contain carbon monoxide.
+
+Query 21:
+: 421 industrial waste disposal : how is the disposal of industrial waste being accomplished by industrial management throughout the world? : documents that discuss the disposal, storage, or management of industrial waste---both standard and hazardous---are relevant. however, documents that discuss disposal or storage of nuclear or radioactive waste, or the illegal shipment or dumping of waste to avoid legal disposal methods are not relevant.
+
+Query 22:
+: 422 art, stolen, forged : what incidents have there been of stolen or forged art? : instances of stolen or forged art in any media are relevant. stolen mass-produced things, even though they might be decorative, are not relevant (unless they are mass- produced art reproductions). pirated software, music, movies, etc. are not relevant.
+
+Query 23:
+: 423 milosevic, mirjana markovic : find references to milosevic's wife, mirjana markovic. : any mention of the serbian president's wife is relevant, even if she is not named. she may be referred to by her nickname, mira. a general mention of his family, without specifying his wife, is not relevant.
+
+Query 24:
+: 424 suicides : give examples of alleged suicides that aroused suspicion of the death actually being murder. : the intent of this query is to find criminal murders that are being disguised as suicide, but assisted suicides done out of compassion would be relevant if someone refers to them as murder.
+
+Query 25:
+: 425 counterfeiting money : what counterfeiting of money is being done in modern times? : relevant documents must cite actual instances of counterfeiting. anti-counterfeiting measures by themselves are not relevant.
+
+Query 26:
+: 426 law enforcement, dogs : provide information on the use of dogs worldwide for law enforcement purposes. : relevant items include specific information on the use of dogs during an operation. training of dogs and their handlers are also relevant.
+
+Query 27:
+: 427 uv damage, eyes : find documents that discuss the damage ultraviolet (uv) light from the sun can do to eyes. : a relevant document will discuss diseases that result from exposure of the eyes to uv light, treatments for the damage, and/or education programs that help prevent damage. documents discussing treatment methods for cataracts and ocular melanoma are relevant even when a specific cause is not mentioned. however, documents that discuss radiation damage from nuclear sources or lasers are not relevant.
+
+Query 28:
+: 428 declining birth rates : do any countries other than the u.s. and china have a declining birth rate? : to be relevant, a document will name a country other than the u.s. or china in which the birth rate fell from the rate of the previous year. the decline need not have occurred in more than the one preceding year.
+
+Query 29:
+: 429 legionnaires' disease : identify outbreaks of legionnaires' disease. : to be relevant, a document must discuss a specific outbreak of legionnaires' disease. documents that address prevention of or cures for the disease without citing a specific case are not relevant.
+
+Query 30:
+: 430 killer bee attacks : identify instances of attacks on humans by africanized (killer) bees. : relevant documents must cite a specific instance of a human attacked by killer bees. documents that note migration patterns or report attacks on other animals are not relevant unless they also cite an attack on a human.
+
+Query 31:
+: 431 robotic technology : what are the latest developments in robotic technology? : a relevant document will contain information on current applications of robotic technology. discussions of robotics research or simulations of robots are not relevant.
+
+Query 32:
+: 432 profiling, motorists, police : do police departments use "profiling" to stop motorists? : a relevant document will report or discuss police department criteria for identifying motorists considered likely to be carrying contraband. documents discussing the detention of individuals by foreign security forces are not relevant.
+
+Query 33:
+: 433 greek, philosophy, stoicism : is there contemporary interest in the greek philosophy of stoicism? : actual references to the philosophy or philosophers, productions of greek stoic plays, and new "stoic" artistic productions are all relevant.
+
+Query 34:
+: 434 estonia, economy : what is the state of the economy of estonia? : documents that give concrete economic information such as economic statistics, entering economic unions and treaties, or monetary performance are relevant, as are discussions of economic issues such as transportation or pollution.
+
+Query 35:
+: 435 curbing population growth : what measures have been taken worldwide and what countries have been effective in curbing population growth? : a relevant document must describe an actual case in which population measures have been taken and their results are known. the reduction measures must have been actively pursued; that is, passive events such as disease or famine involuntarily reducing the population are not relevant.
+
+Query 36:
+: 436 railway accidents : what are the causes of railway accidents throughout the world? : a relevant document provides data on railway accidents of any sort (i.e., locomotive, trolley, streetcar) where either the railroad system or the vehicle or pedestrian involved caused the accident. documents that discuss railroading in general, new rail lines, new technology for safety, and safety and accident prevention are not relevant, unless an actual accident is described.
+
+Query 37:
+: 437 deregulation, gas, electric : what has been the experience of residential utility customers following deregulation of gas and electric? : documents that discuss privatization of government- owned utilities alone are not relevant. also, not relevant are documents that discuss the deregulation of utilities for commercial customers.
+
+Query 38:
+: 438 tourism, increase : what countries are experiencing an increase in tourism? : a relevant document will name a country that has experienced an increase in tourism. the increase must represent the nation as a whole and tourism in general, not be restricted to only certain regions of the country or to some specific type of tourism (e.g., adventure travel). documents discussing only projected increases are not relevant.
+
+Query 39:
+: 439 inventions, scientific discoveries : what new inventions or scientific discoveries have been made? : the word "new" in the is defined as occurring in the 1990s. documents that indicate a "recent" invention or scientific discovery are considered relevant. discoveries made in astronomy or any scientific discoveries that are not patentable are not relevant.
+
+Query 40:
+: 440 child labor : what steps are being taken by governments or corporations to eliminate abuse of child labor? : a relevant document identifies an action taken by either a private commercial corporation or governmental organization to reduce or eliminate the use of child labor in manufacturing operations.
+
+Query 41:
+: 441 lyme disease : how do you prevent and treat lyme disease? : documents that discuss current prevention and treatment techniques for lyme disease are relevant. reports of research on new treatments of the disease are also relevant.
+
+Query 42:
+: 442 heroic acts : find accounts of selfless heroic acts by individuals or small groups for the benefit of others or a cause. : relevant documents will contain a of specific acts. general statements concerning heroic acts are not relevant.
+
+Query 43:
+: 443 u.s., investment, africa : what is the extent of u.s. (government and private) investment in sub-saharan africa? : all references to u.s. governmental and private assistance to sub-saharan africa are relevant. documents discussing contributions by reason of u.s. membership in international aid organizations are also relevant.
+
+Query 44:
+: 444 supercritical fluids : what are the potential uses for supercritical fluids as an environmental protection measure? : to be relevant, a document must indicate that the fluid involved is achieved by a process of pressurization producing the supercritical fluid.
+
+Query 45:
+: 445 women clergy : what other countries besides the united states are considering or have approved women as clergy persons? : to be relevant, a document must indicate either a country where a woman has been installed as clergy or a country that is considering such an installation. the clergy position must be as church pastor rather than some other church capacity (e.g., nun or choir member).
+
+Query 46:
+: 446 tourists, violence : where are tourists likely to be subjected to acts of violence causing bodily harm or death? : a relevant document must contain accounts of known harm to tourists. evidence of single, isolated incidents are not relevant.
+
+Query 47:
+: 447 stirling engine : what new developments and applications are there for the stirling engine? : any discussion of new developments and applications of the stirling engine (also known as the stirling cycle) are relevant.
+
+Query 48:
+: 448 ship losses : identify instances in which weather was a main or contributing factor in the loss of a ship at sea. : any ship loss due to weather is relevant, either in international or coastal waters.
+
+Query 49:
+: 449 antibiotics ineffectiveness : what has caused the current ineffectiveness of antibiotics against infections and what is the prognosis for new drugs? : to be relevant, a document must discuss the reasons or causes for the ineffectiveness of current antibiotics. relevant documents may also include efforts by pharmaceutical companies and federal government agencies to find new cures, updating current testing phases, new drugs being tested, and the prognosis for the availability of new and effective antibiotics.
+
+Query 50:
+: 450 king hussein, peace : how significant a figure over the years was the late jordanian king hussein in furthering peace in the middle east? : a relevant document must include mention of israel; king hussein himself as opposed to other jordanian officials; discussion of the king's on-going, previous or upcoming efforts; and efforts pertinent to the peace process, not merely jordan's relationship with other middle-east countries or the u.s.
+

@@ -13,7 +13,7 @@ import java.io.File
 import java.util.regex.Pattern
 import java.io.FileWriter
 import java.io.BufferedWriter
-
+import java.text.SimpleDateFormat
 import kotlinx.coroutines.runBlocking
 
 class Indexer(
@@ -45,7 +45,7 @@ class Indexer(
         }
         return docs
     }
-
+    
     private fun saveDocumentToFile(document: Document, filePath: String) {
         // Use FileWriter with append mode enabled
         BufferedWriter(FileWriter(filePath, true)).use { writer ->
@@ -75,79 +75,103 @@ class Indexer(
         launch(Dispatchers.Default) { indexFBis(step, write) }
         launch(Dispatchers.Default) { indexFr94(step, write) }
     }
+    
+    //as queries only contain years and no months, we extract the year only from each doc date field
+    fun extractYear(date: String): String? {
+        //  match 4 digits starting with '1'
+        val regex = """\b1\d{3}\b""".toRegex()
+        val match = regex.find(date)
+    
+        // if match is found return  otherwise null
+        return match?.value
+    }
+
+
+
+
 
     private fun indexLaTimes(step: Int = 1, write: Boolean = false) {
         println("Indexing LA Times documents...")
+        File("test/la.txt").printWriter().use {}
         val subfolders = File("docs/latimes").listFiles { file -> file.isDirectory }
-        var totalDocs = 0   
+        var totalDocs = 0
         subfolders?.forEach { folder ->
             val docs = separateDocs(folder.absolutePath)
             totalDocs += docs.size
             runBlocking {
                 for ((i, doc) in docs.withIndex()) {
-                    // allows documents to be skipped during indexing to speed up testing
-                    if (i % step != 0) continue
-                    launch(Dispatchers.Default) {
-                        val docId = findByTagAndProcess(doc, "DOCNO")
-                        val headline = findByTagAndProcess(doc, "HEADLINE")
-                        val text = findByTagAndProcess(doc, "TEXT")
-                        val date = findByTagAndProcess(doc, "DATE")
 
-                        val iDoc = Document().apply {
-                            headline?.let { add(TextField("headline", it, Field.Store.YES)) }
-                            text?.let { add(TextField("text", it, Field.Store.YES)) }
-                            docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                            date?.let { add(TextField("date", it, Field.Store.YES)) }
-                        }
-                        if (write && i < 50) {
-                            saveDocumentToFile(iDoc, "docs/test/la.txt")
-                        }
-                        iwriter.addDocument(iDoc)
+                    val docId = findByTagAndProcess(doc, "DOCNO")
+                    val headline = findByTagAndProcess(doc, "HEADLINE")
+                    val text = findByTagAndProcess(doc, "TEXT")
+                    val date = findByTagAndProcess(doc, "DATE")
+                    val processedDate = date?.let {
+                        extractYear(it) 
+                    } ?: "null" 
+
+                    val iDoc = Document().apply {
+                        headline?.let { add(TextField("headline", it, Field.Store.YES)) }
+                        text?.let { add(TextField("text", it, Field.Store.YES)) }
+                        docId?.let { add(StringField("docId", it, Field.Store.YES)) }
+                        processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                     }
+                  
+                    if (write && i < 50) {
+                        saveDocumentToFile(iDoc, "test/la.txt")
+                    }
+                    iwriter.addDocument(iDoc)
                 }
-            }
-            
+            }       
         }  
         println("${totalDocs / step} LA Times documents indexed.")
     } 
+    
+    //extract year from FT date 
+    fun extractFTYear(date: String): String {
+        val yearPrefix = date.substring(0, 2)
+        val fullYear = "19$yearPrefix"
+        return fullYear
+    }
 
     private fun indexFt(step: Int = 1, write: Boolean = false) {
         println("Indexing Financial Times documents...")
         //clears the test file of any previous docs
-//        File("docs/test/ft.txt").printWriter().use {}
+
+        File("test/ft.txt").printWriter().use {}
         val subfolders = File("docs/ft").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
             subfolders?.forEach { folder ->
-                launch(Dispatchers.Default) {
+                
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
                         if (i % step != 0) continue
-                        launch(Dispatchers.Default) {
                             val docId = findByTagAndProcess(doc, "DOCNO")
                             val headline = findByTagAndProcess(doc, "HEADLINE")
                             val text = findByTagAndProcess(doc, "TEXT")
                             val date = findByTagAndProcess(doc, "DATE")
+                            val processedDate = date?.let {
+                                extractFTYear(it) 
+                            } ?: "null" 
 
                             val iDoc = Document().apply {
                                 docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                                date?.let { add(TextField("date", it, Field.Store.YES)) }
+                                processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                                 headline?.let { add(TextField("headline", it, Field.Store.YES)) }
                                 text?.let { add(TextField("text", it, Field.Store.YES)) }
                             }
                             // writes the first fifty docs found in each file to the test document
                             if (write && i < 50) {
-                                saveDocumentToFile(iDoc, "docs/test/ft.txt")
+                                saveDocumentToFile(iDoc, "test/ft.txt")
                             }
                             iwriter.addDocument(iDoc)
-                        }
                     }
-                }
             }
         }
         println("${totalDocs / step} Financial Times documents indexed.")
     }
+
 
     private fun removePjgTagsFromDoc(doc: String): String {
         // Regular expression to match PJG tags, supporting multiline content within each tag
@@ -156,31 +180,22 @@ class Indexer(
         return doc.replace(pjgTagPattern, "")
     }
 
-    private fun extractDate(text: String): String? {
-        // Regular expression to match a date in the format "Month Day, Year"
-        val datePattern = Regex("\\b(January|February|March|April|May|June|July|August|September|October|November|December) \\d{1,2}, \\d{4}\\b")
 
-        // Find the first match of the date pattern in the text
-        val match = datePattern.find(text)
-
-        return match?.value
-    }
 
     private fun indexFr94(step: Int = 1, write: Boolean = false) {
         println("Indexing Federal Register 1994 documents...")
         //clears the test file of any previous docs
-//        File("docs/test/fr94.txt").printWriter().use {}
+
+        File("test/fr94.txt").printWriter().use {}
 
         val subfolders = File("docs/fr94").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
             subfolders?.forEach { folder ->
-                launch(Dispatchers.Default) {
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
                         if (i % step != 0) continue
-                        launch(Dispatchers.Default) {
                             val newDoc = removePjgTagsFromDoc(doc)
 
                             val docId = findByTagAndProcess(newDoc, "DOCNO")
@@ -194,7 +209,9 @@ class Indexer(
                             val text = sb.toString()
 
                             val date = findByTagAndProcess(newDoc,"DATE")
-                            val processedDate = date?.let { extractDate(it) }
+                            val processedDate = date?.let {
+                                extractYear(it) 
+                            } ?: "null" 
 
                             val iDoc = Document().apply {
                                 header?.let { add(TextField("headline", it, Field.Store.YES)) }
@@ -203,12 +220,10 @@ class Indexer(
                                 processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                             }
                             if (write && i < 50) {
-                                saveDocumentToFile(iDoc, "docs/test/fr94.txt")
+                                saveDocumentToFile(iDoc, "test/fr94.txt")
                             }
                             iwriter.addDocument(iDoc)
                         }
-                    }
-                }
             }
         }
 
@@ -218,40 +233,41 @@ class Indexer(
     private fun indexFBis(step: Int = 1, write: Boolean = false) {
         println("Indexing Foreign Broadcast Information Services documents...")
         //clears the test file of any previous docs
-//        File("docs/test/fbsi.txt").printWriter().use {}
+        File("test/fbsi.txt").printWriter().use {}
+
         val subfolders = File("docs/fbis").listFiles { file -> file.isDirectory }
         var totalDocs = 0
         runBlocking {
             subfolders?.forEach { folder ->
-                launch(Dispatchers.Default) {
                     val docs = separateDocs(folder.absolutePath)
                     totalDocs += docs.size
                     for ((i, doc) in docs.withIndex()) {
                         if (i % step != 0) continue
-                        launch(Dispatchers.Default) {
                             val docId = findByTagAndProcess(doc, "DOCNO")
                             val header = findByTagAndProcess(doc, "TI")
                             val date = findByTagAndProcess(doc, "DATE1")
+                            val processedDate = date?.let {
+                                extractYear(it) 
+                            } ?: "null" 
                             val text = findByTagAndProcess(doc, "TEXT")
 
                             val iDoc = Document().apply {
                                 header?.let { add(TextField("headline", it, Field.Store.YES)) }
                                 text?.let { add(TextField("text", it, Field.Store.YES)) }
                                 docId?.let { add(StringField("docId", it, Field.Store.YES)) }
-                                date?.let { add(TextField("date", it, Field.Store.YES)) }
+                                processedDate?.let { add(TextField("date", it, Field.Store.YES)) }
                             }
                             if (write && i < 50) {
-                                saveDocumentToFile(iDoc, "docs/test/fbsi.txt")
+                                saveDocumentToFile(iDoc, "test/fbsi.txt")
                             }
                             iwriter.addDocument(iDoc)
-                        }
                     }
-                }
             }
         }
         println("${totalDocs / step} Foreign Broadcast Information Services documents indexed.")
     }
-    
+
+
     fun shutdown() {
         iwriter.close()
     }

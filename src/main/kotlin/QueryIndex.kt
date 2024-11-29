@@ -40,7 +40,7 @@ class QueryIndex {
             "narr" to mapOf("headline" to 0.2f, "date" to 0.8f, "text" to 0.7f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f, "date" to 1.0f)
+        this.boosts = mapOf("title" to 1f, "desc" to 0.4f, "narr" to 0.2f,  "noDate" to 0.0f, "date" to 0.4f)// date was 1
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -103,15 +103,29 @@ class QueryIndex {
     }
 
     data class PartialQuery(val num: String?, val title: String?, val desc: String?, val narr: String?, val date: String?)
-    fun importQueries() {
+    fun importQueries(expansion: Boolean = false) {
         val queries = ArrayList<PartialQuery>()
         val file = File("queries/topics")
+        val qi = QueryIndex();
         if (file.isFile) {
             val content = file.readText()
             val querySeparator = Pattern.compile("(?<=<top>\\s)[\\s\\S]*?(?=</top>)").matcher(content)
             while (querySeparator.find()) {
                 val rawQuery = querySeparator.group()
-                val cleanQuery = sanitizeQuery(rawQuery)
+                var cleanQuery: String
+                //if expansion flag set then use wordnet to perform synonym query expansion 
+                if(expansion){
+          
+                    val wnFilePath = "wn/wn_s.pl"
+                    val synonymMap = qi.loadSynonymsFromProlog(wnFilePath)
+                    val expandedQuery = expandQueryWithPrologSynonyms(rawQuery, synonymMap)
+                    cleanQuery = sanitizeQuery(expandedQuery)
+                }else{ 
+                    cleanQuery = sanitizeQuery(rawQuery)
+                }
+                
+               
+                //  print(cleanQuery);
                 val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
@@ -153,7 +167,11 @@ class QueryIndex {
             }
             query.date?.let {
                 val dateQuery = MultiFieldQueryParser(fields, analyzer, weights["date"]).parse(it)
-                val boostedDateQuery = BoostQuery(dateQuery, boosts["date"]!!)
+                val boostedDateQuery = if (it == "null") {
+                    BoostQuery(dateQuery, boosts["noDate"]!!)
+                } else {
+                    BoostQuery(dateQuery, boosts["date"]!!)
+                }
                 booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)
             }
             query.num?.let {
@@ -207,6 +225,49 @@ class QueryIndex {
     }
 
 
+    fun loadSynonymsFromProlog(filePath: String): Map<String, List<String>> {
+        val synonymMap = mutableMapOf<String, MutableList<String>>()
+      //  val regex = Regex("s\\((\\d+), \\d+, '(.*?)', [a-z], \\d+, \\d+\\)\\.")
+        val regex = Regex("s\\((\\d+),\\d+,'(.*?)',n,\\d+,\\d+\\)\\.")
+
+        File(filePath).useLines { lines ->
+            for (line in lines) {
+                val match = regex.find(line)
+                if (match != null) {
+                    val synsetId = match.groupValues[1]
+                    val word = match.groupValues[2]
+
+                    synonymMap.computeIfAbsent(synsetId) { mutableListOf() }.add(word)
+                }
+            }
+        }
+        return synonymMap
+    }
+    fun getSynonymsFromMap(word: String, synonymMap: Map<String, List<String>>): List<String> {
+        val lowerCaseWord = word.lowercase()
+        for ((_, words) in synonymMap) {
+            if (lowerCaseWord in words.map { it.lowercase() }) {
+                return words.filter { it.lowercase() != lowerCaseWord }  // Exclude original word
+            }
+        }
+        return emptyList()
+    }
+
+    fun expandQueryWithPrologSynonyms(query: String, synonymMap: Map<String, List<String>>): String {
+        val words = query.split("\\s+".toRegex())
+       // println(words);
+        val expandedWords = words.flatMap { word ->
+          // println(word);
+           // println(getSynonymsFromMap(word, synonymMap))
+            listOf(word) + getSynonymsFromMap(word, synonymMap)
+
+        }
+       // println(expandedWords);
+        return expandedWords.joinToString(" ")
+    }
+
+
+
     companion object {
         @JvmStatic fun main(args: Array<String>) {
             val qi = QueryIndex()
@@ -224,16 +285,30 @@ class QueryIndex {
                 } else {
                     println("Using existing index.")
                 }
-                qi.importQueries()
             }
+            
             if (args.any { it.startsWith("-i") } ) {
                 println("Indexing took ${(System.currentTimeMillis() - startTime) / 1000}s")
             }
+            
+            //if args conatins -l  then use llm query parsing pipeline  
+            if (args.any { it.startsWith("-l") }){
+                val qillm = LLMQuerySearch()
+                qillm.runQueries("queries/expanded_queries.txt");
+            //else use standard pipeline
+            }else {
+                //if args contains -s flag then use synonym expansion for queries
+                if (args.any { it.startsWith("-s")}) {
+                    qi.importQueries(expansion=true)
+                }else{
+                    qi.importQueries()
+                }
 
-            // shutdown the indexer if it was initialized
-            ind?.run {
-                shutdown()
-            }
+                // shutdown the indexer if it was initialized
+                ind?.run {
+                    shutdown()
+                }
+
 
             // if args contains flag starting in -o, run optimiser
             if (args.any { it.startsWith("-o")}) {
@@ -258,14 +333,18 @@ class QueryIndex {
                         optimiseTokenFilters()
                         runTrecEval("optimisation/token_filters")
                     }
-                }
-            } else {
-                qi.run { runQueries(processQueries()) }
+                }else{
+                    qi.run { runQueries(processQueries()) }
 
-                val process = ProcessBuilder("./trec_eval-9.0.7/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
-                println(process.inputStream.bufferedReader().use(BufferedReader::readText))
+                    val process = ProcessBuilder("./trec_eval/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
+                    println(process.inputStream.bufferedReader().use(BufferedReader::readText))
+                }
+                
+                qi.directory.close()
+                exitProcess(0)
+    
             }
-            qi.directory.close()
-        }
+
     }
+}
 }
