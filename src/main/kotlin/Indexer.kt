@@ -46,6 +46,7 @@ class Indexer(
         return docs
     }
     
+    /* 
     fun normalizeDate(dateStr: String): String? {
         val possibleFormats = listOf(
             SimpleDateFormat("yyyyMMdd", Locale.ENGLISH),
@@ -63,7 +64,7 @@ class Indexer(
             }
         }
         return null
-    }
+    }*/
 
     private fun saveDocumentToFile(document: Document, filePath: String) {
         // Use FileWriter with append mode enabled
@@ -119,7 +120,6 @@ class Indexer(
                     }
                   
                     if (write && i < 50) {
-                        println("in the if")
                         saveDocumentToFile(iDoc, "test/la.txt")
                     }
                     iwriter.addDocument(iDoc)

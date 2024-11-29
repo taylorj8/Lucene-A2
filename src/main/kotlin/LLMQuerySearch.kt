@@ -10,6 +10,7 @@ import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
 import java.io.File
 import java.nio.file.Paths
+import java.io.BufferedReader
 
 class LLMQuerySearch {
     private var similarity: Similarity = BM25Similarity()
@@ -64,7 +65,7 @@ class LLMQuerySearch {
         }
 
         val parsedQueries = buildMultiFieldQueries(queries)
-        println("Parsed Queries: $parsedQueries")
+        //println("Parsed Queries: $parsedQueries")
 
         val simName = similarity::class.simpleName
         val resultsFile = File("results/${simName}_results_llm.txt")
@@ -84,7 +85,10 @@ class LLMQuerySearch {
                 resultsFile.appendText("${queryId + 401} Q0 $docId ${rank + 1} ${hit.score} $simName\n")
             }
         }
-        ireader.close()
         println("Results saved to ${resultsFile.path}.")
+        val process = ProcessBuilder("./trec_eval/trec_eval", "qrels/qrels.assignment2.part1", "results/BM25Similarity_results_llm.txt").start()
+        println(process.inputStream.bufferedReader().use(BufferedReader::readText))
+        ireader.close()
+        
     }
 }

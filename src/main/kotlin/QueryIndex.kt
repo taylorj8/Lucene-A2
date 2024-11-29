@@ -40,7 +40,7 @@ class QueryIndex {
             "narr" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.8f),
             "date" to mapOf("headline" to 0.2f, "date" to 1.0f, "text" to 0.2f)
         )
-        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "date" to 0.0f)
+        this.boosts = mapOf("title" to 0.8f, "desc" to 0.4f, "narr" to 0.2f, "noDate" to 0.0f, "date" to 0.2f)
     }
 
     data class QueryWithId(val num: String, val query: Query)
@@ -95,7 +95,7 @@ class QueryIndex {
     }
 
     data class PartialQuery(val num: String?, val title: String?, val desc: String?, val narr: String?, val date: String?)
-    fun importQueries() {
+    fun importQueries(expansion: Boolean = false) {
         val queries = ArrayList<PartialQuery>()
         val file = File("queries/topics")
         val qi = QueryIndex();
@@ -104,18 +104,20 @@ class QueryIndex {
             val querySeparator = Pattern.compile("(?<=<top>\\s)[\\s\\S]*?(?=</top>)").matcher(content)
             while (querySeparator.find()) {
                 val rawQuery = querySeparator.group()
-                /*
-                query expansion
-                val wnFilePath = "wn/wn_s.pl"
-                val synonymMap = qi.loadSynonymsFromProlog(wnFilePath)
-                //println(synonymMap);
-                val expandedQuery = expandQueryWithPrologSynonyms(rawQuery, synonymMap)
-                //  println(rawQuery);
-                println(expandedQuery);
-                 */
-                val cleanQuery = sanitizeQuery(expandedQuery)
-
-              //  print(cleanQuery);
+                var cleanQuery: String
+                //if expansion flag set then use wordnet to perform synonym query expansion 
+                if(expansion){
+          
+                    val wnFilePath = "wn/wn_s.pl"
+                    val synonymMap = qi.loadSynonymsFromProlog(wnFilePath)
+                    val expandedQuery = expandQueryWithPrologSynonyms(rawQuery, synonymMap)
+                    cleanQuery = sanitizeQuery(expandedQuery)
+                }else{ 
+                    cleanQuery = sanitizeQuery(rawQuery)
+                }
+                
+               
+                //  print(cleanQuery);
                 val num = findByTagAndProcessQuery(cleanQuery, "num", "title" )
                 val title = findByTagAndProcessQuery(cleanQuery, "title", "desc")
                 val desc = findByTagAndProcessQuery(cleanQuery, "desc", "narr")
@@ -154,7 +156,11 @@ class QueryIndex {
             }
             query.date?.let {
                 val dateQuery = MultiFieldQueryParser(fields, analyzer, weights["date"]).parse(it)
-                val boostedDateQuery = BoostQuery(dateQuery, boosts["date"]!!)
+                val boostedDateQuery = if (it == "null") {
+                    BoostQuery(dateQuery, boosts["noDate"]!!)
+                } else {
+                    BoostQuery(dateQuery, boosts["date"]!!)
+                }
                 booleanQuery.add(boostedDateQuery, BooleanClause.Occur.SHOULD)
             }
             query.num?.let {
@@ -269,56 +275,70 @@ class QueryIndex {
                     println("Using existing index.")
                 }
             }
-            qi.importQueries()
-          
+            
             if (args.any { it.startsWith("-i") } ) {
                 println("Indexing took ${(System.currentTimeMillis() - startTime) / 1000}s")
             }
-
-            // shutdown the indexer if it was initialized
-            ind?.run {
-                shutdown()
-            }
-
-            // if args contains flag starting in -o, run optimiser
-            if (args.any { it.startsWith("-o")}) {
-                Optimiser(qi).run {
-                    if (args.contains("-os") || args.contains("-o")) {
-                        optimiseSimilarities()
-                        runTrecEval("optimisation/similarities", listOf("classic", "bm25", "lmd", "lmj"))
-                    }
-                    if (args.contains("-ow") || args.contains("-o")) {
-                        optimiseWeights()
-                        runTrecEval("optimisation/weights", listOf("title", "desc", "narr"))
-                    }
-                    if (args.contains("-ob") || args.contains("-o")) {
-                        optimiseBoosts()
-                        runTrecEval("optimisation/boosts")
-                    }
-                    if (args.contains("-ot") || args.contains("-o")) {
-                        optimiseTokenizers()
-                        runTrecEval("optimisation/tokenizers")
-                    }
-                    if (args.contains("-otf") || args.contains("-o")) {
-                        optimiseTokenFilters()
-                        runTrecEval("optimisation/token_filters")
-                    }
+            
+            //if args conatins -l  then use llm query parsing pipeline  
+            if (args.any { it.startsWith("-l") }){
+                val qillm = LLMQuerySearch()
+                qillm.runQueries("queries/expanded_queries.txt");
+            //else use standard pipeline
+            }else {
+                //if args contains -s flag then use synonym expansion for queries
+                if (args.any { it.startsWith("-s")}) {
+                    qi.importQueries(expansion=true)
+                }else{
+                    qi.importQueries()
                 }
-            } else {
-                qi.run { runQueries(processQueries()) }
 
-                val process = ProcessBuilder("./trec_eval/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
-                println(process.inputStream.bufferedReader().use(BufferedReader::readText))
+                // shutdown the indexer if it was initialized
+                ind?.run {
+                    shutdown()
+                }
+
+                // if args contains flag starting in -o, run optimiser
+                if (args.any { it.startsWith("-o")}) {
+                    Optimiser(qi).run {
+                        if (args.contains("-os") || args.contains("-o")) {
+                            optimiseSimilarities()
+                            runTrecEval("optimisation/similarities", listOf("classic", "bm25", "lmd", "lmj"))
+                        }
+                        if (args.contains("-ow") || args.contains("-o")) {
+                            optimiseWeights()
+                            runTrecEval("optimisation/weights", listOf("title", "desc", "narr"))
+                        }
+                        if (args.contains("-ob") || args.contains("-o")) {
+                            optimiseBoosts()
+                            runTrecEval("optimisation/boosts")
+                        }
+                        if (args.contains("-ot") || args.contains("-o")) {
+                            optimiseTokenizers()
+                            runTrecEval("optimisation/tokenizers")
+                        }
+                        if (args.contains("-otf") || args.contains("-o")) {
+                            optimiseTokenFilters()
+                            runTrecEval("optimisation/token_filters")
+                        }
+                    }
+                }else{
+                    qi.run { runQueries(processQueries()) }
+
+                    val process = ProcessBuilder("./trec_eval/trec_eval", "qrels/qrels.assignment2.part1", "results/_output.txt").start()
+                    println(process.inputStream.bufferedReader().use(BufferedReader::readText))
+                }
+                // if args contains flag starting in -s, use synonym query expansion
+                
+
+                /*
+                println("working on query expansion using LLM")
+    )
+                */
+                qi.directory.close()
+                exitProcess(0)
+    
             }
-
-            /*
-            println("working on query expansion using LLM")
-            qillm.runQueries("queries/expanded_queries.txt");
-                        println("saved queries using LLM")
-            */
-            qi.directory.close()
-            exitProcess(0)
-  
-
-    }}
+    }
+}
 }
